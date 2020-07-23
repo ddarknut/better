@@ -1,0 +1,8 @@
+build
+
+*.rdbg
+*.sublime-project
+*.sublime-workspace
+run.bat
+
+debug_chatlog*

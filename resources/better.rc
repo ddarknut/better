@@ -1,0 +1,2 @@
+font_default RCDATA "resources\FiraSans-Regular.ttf"
+font_mono    RCDATA "resources\FiraMono-Regular.ttf"
