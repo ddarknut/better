@@ -91,6 +91,12 @@ void load_settings_from_disk(App* app)
 
         memcpy(&app->settings, data_out.pbData, data_out.cbData);
 
+        if (app->settings.token[0] != '\0')
+        {
+            CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS);
+            SecureZeroMemory(data_out.pbData, data_out.cbData);
+        }
+
         LocalFree(data_out.pbData);
         free(data_in.pbData);
     }
@@ -107,7 +113,14 @@ void save_settings_to_disk(App* app)
     data_in.cbData = sizeof(app->settings);
     data_in.pbData = (BYTE*) &app->settings;
 
+    bool has_token = app->settings.token[0] != '\0';
+    if (has_token) CryptUnprotectMemory(app->settings.token,
+                                        sizeof(app->settings.token),
+                                        CRYPTPROTECTMEMORY_SAME_PROCESS);
     auto res = CryptProtectData(&data_in, L"User settings for Better", NULL, NULL, NULL, 0, &data_out);
+    if (has_token) CryptProtectMemory(app->settings.token,
+                                      sizeof(app->settings.token),
+                                      CRYPTPROTECTMEMORY_SAME_PROCESS);
     assert(res);
 
     char* path = (char*) malloc(strlen(app->base_dir) + 15);

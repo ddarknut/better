@@ -4,5 +4,7 @@ build
 *.sublime-project
 *.sublime-workspace
 run.bat
+package.bat
+better.zip
 
 debug_chatlog*

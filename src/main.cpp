@@ -1,4 +1,4 @@
-// TODO: secure token memory
+// TODO: Allow secure socket connection (SSL)
 // TODO: Save window position and size to disk
 // TODO: PIE CHARTS AND SHIT
 // TODO: 'bet n%'
@@ -925,7 +925,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 ImGui::NextColumn();
 
                 ImGui::Text("Username");
-                imgui_extra("May be left blank, in which case Better will log in anonymously, and won't be able to send messages to the channel. Oauth token will be ignored in this case.\n");
+                imgui_extra("May be left blank, in which case Better will log in anonymously, and won't be able to send messages to the channel. OAuth token will be ignored in this case.\n");
                 ImGui::NextColumn();
                 ImGui::PushID("username");
                 ImGui::SetNextItemWidth(widget_width);
@@ -935,14 +935,74 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 ImGui::PopID();
                 ImGui::NextColumn();
 
-                ImGui::Text("Oauth token");
-                imgui_extra("Go to twitchapps.com/tmi to get a token for your account.\nShould start with `oauth:`.");
+                ImGui::Text("OAuth token");
+                imgui_extra("Go to twitchapps.com/tmi to get a token for your account. Must start with \"oauth:\". The clipboard will be emptied after pasting.");
                 ImGui::NextColumn();
                 ImGui::PushID("token");
                 ImGui::SetNextItemWidth(widget_width);
+
                 if (irc_connected) imgui_push_disabled();
-                ImGui::InputText("", app.settings.token, CHANNEL_NAME_MAX, ImGuiInputTextFlags_Password);
+
+                if (app.settings.token[0] == '\0')
+                {
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::Text("(empty)");
+                    ImGui::SameLine();
+
+                    bool clip_open = OpenClipboard(app.main_wnd);
+                    bool disable_paste = !IsClipboardFormatAvailable(CF_TEXT) ||
+                                         !clip_open;
+
+                    if (disable_paste) imgui_push_disabled();
+
+                    if (ImGui::Button("Paste"))
+                    {
+                        HANDLE clip_handle = GetClipboardData(CF_TEXT);
+                        if (clip_handle == NULL)
+                        {
+                            add_log(&app, LOGLEVEL_ERROR, "GetClipboardData failed: %d", GetLastError());
+                            abort();
+                        }
+                        else
+                        {
+                            char* clip_data = (char*) GlobalLock(clip_handle);
+                            if (clip_data == NULL)
+                            {
+                                add_log(&app, LOGLEVEL_ERROR, "GlobalLock failed when getting clipboard data: %d", GetLastError());
+                                abort();
+                            }
+                            else
+                            {
+                                strncpy(app.settings.token, clip_data, TOKEN_MAX);
+                                GlobalUnlock(clip_handle);
+                                if(strncmp(app.settings.token, "oauth:", 6) != 0)
+                                {
+                                    add_log(&app, LOGLEVEL_ERROR, "Pasted token has an incorrect format. Make sure it starts with \"oauth:\".");
+                                    SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
+                                }
+                                else
+                                {
+                                    if (!EmptyClipboard()) add_log(&app, LOGLEVEL_ERROR, "EmptyClipboard failed: %d", GetLastError());
+                                    CryptProtectMemory(app.settings.token, sizeof(app.settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS);
+                                }
+                            }
+                        }
+                    }
+
+                    if (disable_paste) imgui_pop_disabled();
+                    if (clip_open) CloseClipboard();
+                }
+                else
+                {
+                    ImGui::AlignTextToFramePadding();
+                    ImGui::Text("(hidden)");
+                    ImGui::SameLine();
+                    if (ImGui::Button("Clear"))
+                        SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
+                }
+
                 if (irc_connected) imgui_pop_disabled();
+
                 ImGui::PopID();
                 ImGui::NextColumn();
 

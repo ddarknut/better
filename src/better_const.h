@@ -3,7 +3,7 @@
 
 #include "imgui.h"
 
-#define BETTER_VERSION_STR "0.1.0"
+#define BETTER_VERSION_STR "0.1.1 WIP"
 
 enum : u8
 {
@@ -31,7 +31,7 @@ const i32 LOG_BUFFER_MAX    = 1000;
 
 const i32 CHANNEL_NAME_MAX  = 100;
 const i32 USERNAME_MAX  = 100;
-const i32 TOKEN_MAX  = 100;
+const i32 TOKEN_MAX = 128;
 
 const u64 POINTS_STEP_SMALL = 100;
 const u64 POINTS_STEP_BIG = 1000;
@@ -50,7 +50,7 @@ const i32 OPTION_NAME_MAX = 20;
 
 const f32 PRIVMSG_MIN_INTERVAL = 30.0f / 20.0f + 0.1f;
 const f32 PRIVMSG_MIN_INTERVAL_AS_MOD = 30.0f / 100.0f + 0.1f;
-const f32 MIN_RECONNECT_INTERVAL = 10.0f;
+const f32 MIN_RECONNECT_INTERVAL = 15.0f;
 
 const ImVec4 TEXT_COLOR_WARN = ImVec4(1.0f, 0.8f, 0.4f, 1.0f);
 
@@ -72,5 +72,6 @@ const char *const LOG_LEVEL_ID_STR[LOGLEVEL_ENUM_SIZE] =
 
 static_assert(POINTS_NAME_MAX < CHAT_COMMAND_MAX);
 static_assert(OPTION_NAME_MAX < CHAT_COMMAND_MAX);
+static_assert(TOKEN_MAX % CRYPTPROTECTMEMORY_BLOCK_SIZE == 0);
 
 #endif // BETTER_CONST_H

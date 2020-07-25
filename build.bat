@@ -33,8 +33,8 @@ if errorlevel 1 (
        lib\imgui\*.cpp ^
        lib\imgui\examples\imgui_impl_dx11.cpp ^
        lib\imgui\examples\imgui_impl_win32.cpp ^
-       %CommonCFlags% %ReleaseCFlags% ^
-       /link %CommonLFlags% %ReleaseLFlags%
+       %CommonCFlags% %DebugCFlags% ^
+       /link %CommonLFlags% %DebugLFlags%
 
     if errorlevel 1 (
         echo Build failed.

@@ -74,9 +74,15 @@ void irc_cleanup(App* app)
 
 bool irc_connect(App* app)
 {
-    if (strlen(app->settings.channel) == 0)
+    if (app->settings.channel[0] == '\0')
     {
         add_log(app, LOGLEVEL_ERROR, "Cannot start connection: Channel name is empty.");
+        return false;
+    }
+
+    if (app->settings.username[0] != '\0' && app->settings.token[0] == '\0')
+    {
+        add_log(app, LOGLEVEL_ERROR, "Cannot start connection: OAuth token is empty, but username is not.");
         return false;
     }
 
@@ -212,16 +218,26 @@ void irc_on_connect(App* app)
 
     char* sendbuf = (char*) malloc(SEND_BUFLEN+1);
 
-    char* token = strlen(app->settings.token) > 0? app->settings.token : "null";
-    if (strlen(app->settings.username) > 0)
+    if (app->settings.username[0] != '\0')
     {
-        sprintf(sendbuf, "PASS %s\r\nNICK %s\r\n", token, app->settings.username);
-        add_log(app, LOGLEVEL_INFO, "Logging in as \"%s\"...", app->settings.username);
+        if (app->settings.token[0] == '\0')
+        {
+            add_log(app, LOGLEVEL_ERROR, "Can't log in: OAuth token is empty.");
+            free(sendbuf);
+            irc_disconnect(app);
+        }
+        else
+        {
+            CryptUnprotectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS);
+            sprintf(sendbuf, "PASS %s\r\nNICK %s\r\n", app->settings.token, app->settings.username);
+            CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS);
+            add_log(app, LOGLEVEL_INFO, "Logging in as \"%s\"...", app->settings.username);
+        }
     }
     else
     {
         i32 r = (i32)((f32)rand()*100000/RAND_MAX) % 100000;
-        sprintf(sendbuf, "PASS %s\r\nNICK justinfan%i\r\n", token, r);
+        sprintf(sendbuf, "PASS null\r\nNICK justinfan%i\r\n", r);
         add_log(app, LOGLEVEL_WARN, "Username is empty. Better will log in as an anonymous user, and will only be able to read, not send messages to the chat.");
         add_log(app, LOGLEVEL_INFO, "Logging in as \"justinfan%i\"...", r);
     }
@@ -253,6 +269,7 @@ void irc_on_write(App* app)
         char* buf = app->write_queue.front();
         irc_send_buffer(app, buf);
         app->write_queue.pop_front();
+        SecureZeroMemory(buf, strlen(buf));
         free(buf);
     }
 
@@ -274,6 +291,7 @@ void irc_on_write(App* app)
         char* buf = app->privmsg_queue.front();
         irc_send_buffer(app, buf);
         app->privmsg_queue.pop_front();
+        SecureZeroMemory(buf, strlen(buf));
         free(buf);
     }
 }
@@ -569,6 +587,7 @@ void irc_queue_write(App* app, char* msg, bool is_privmsg)
 {
     if (app->sock == INVALID_SOCKET)
     {
+        SecureZeroMemory(msg, strlen(msg));
         free(msg);
         return;
     }
