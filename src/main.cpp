@@ -1040,6 +1040,8 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
                 ImGui::Separator();
 
+                bool bets_open = bets_status(&app) != BETS_STATUS_CLOSED;
+
                 ImGui::Text("Starting points");
                 ImGui::NextColumn();
                 ImGui::PushID("Starting points");
@@ -1048,12 +1050,21 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 ImGui::PopID();
                 ImGui::NextColumn();
 
+                ImGui::Text("Allow multibets");
+                // TODO: imgui_extra("");
+                ImGui::NextColumn();
+                if (bets_open) imgui_push_disabled();
+                ImGui::PushID("Allow multibets");
+                ImGui::Checkbox("", &app.settings.allow_multibets);
+                if (bets_open) imgui_pop_disabled();
+                ImGui::PopID();
+                ImGui::NextColumn();
+
                 ImGui::Text("Timer leniency");
                 imgui_extra("Bets will be open for this amount of seconds after the timer apparently runs out.");
                 ImGui::NextColumn();
                 ImGui::PushID("Timer leniency");
                 ImGui::SetNextItemWidth(widget_width);
-                bool bets_open = bets_status(&app) != BETS_STATUS_CLOSED;
                 if (bets_open) imgui_push_disabled();
                 ImGui::InputScalar("", ImGuiDataType_U32, &app.settings.coyote_time, &TIMER_STEP_SMALL, &TIMER_STEP_BIG);
                 if (bets_open) imgui_pop_disabled();

@@ -3,6 +3,7 @@ Version 0.1.1 (WIP)
 ==================================================
 
 - Added in-memory encryption of OAuth token.
+- Added the option to disable multibets.
 
 
 ==================================================

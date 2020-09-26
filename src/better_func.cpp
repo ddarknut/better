@@ -71,34 +71,41 @@ void load_settings_from_disk(App* app)
         add_log(app, LOGLEVEL_DEBUG, "Reading settings from disk.");
 
         u32 version;
-        DATA_BLOB data_in, data_out;
-
-        fseek(file, 0, SEEK_END);
-        data_in.cbData = ftell(file) - sizeof(u32);
-        fseek(file, 0, SEEK_SET);
-
-        data_in.pbData = (BYTE*) malloc(data_in.cbData);
-
         fread(&version, sizeof(u32), 1, file);
-        fread(data_in.pbData, data_in.cbData, 1, file);
-
-        fclose(file);
-
-        auto res = CryptUnprotectData(&data_in, NULL, NULL, NULL, NULL, 0, &data_out);
-        assert(res);
-
-        assert(data_out.cbData == sizeof(app->settings));
-
-        memcpy(&app->settings, data_out.pbData, data_out.cbData);
-
-        if (app->settings.token[0] != '\0')
+        if (version != SETTINGS_VERSION)
         {
-            CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS);
-            SecureZeroMemory(data_out.pbData, data_out.cbData);
+            add_log(app, LOGLEVEL_WARN, "Settings file version (%i) did not match the current one (%i). Resetting.", version, SETTINGS_VERSION);
         }
+        else
+        {
+            DATA_BLOB data_in, data_out;
 
-        LocalFree(data_out.pbData);
-        free(data_in.pbData);
+            fseek(file, 0, SEEK_END);
+            data_in.cbData = ftell(file) - sizeof(u32);
+            fseek(file, 0, SEEK_SET);
+
+            data_in.pbData = (BYTE*) malloc(data_in.cbData);
+
+            fread(data_in.pbData, data_in.cbData, 1, file);
+
+            fclose(file);
+
+            auto res = CryptUnprotectData(&data_in, NULL, NULL, NULL, NULL, 0, &data_out);
+            assert(res);
+
+            assert(data_out.cbData == sizeof(app->settings));
+
+            memcpy(&app->settings, data_out.pbData, data_out.cbData);
+
+            if (app->settings.token[0] != '\0')
+            {
+                CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS);
+                SecureZeroMemory(data_out.pbData, data_out.cbData);
+            }
+
+            LocalFree(data_out.pbData);
+            free(data_in.pbData);
+        }
     }
     else add_log(app, LOGLEVEL_DEBUG, "No settings file found.");
 

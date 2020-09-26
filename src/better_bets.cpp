@@ -40,6 +40,12 @@ void register_bet(App* app, std::string* user, u64 amount, i32 option)
 {
     if (option < 0 || option >= app->bet_registry.size()) return;
 
+    if (!app->settings.allow_multibets)
+        for (auto it = app->bet_registry.begin();
+             it != app->bet_registry.end();
+             ++it)
+            it->bets.erase(*user);
+
     if (amount == 0)
         app->bet_registry[option].bets.erase(*user);
     else if (available_points(app, user, option) >= amount)
