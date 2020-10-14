@@ -911,7 +911,10 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 ImGui::PushID("Channel");
                 ImGui::SetNextItemWidth(widget_width);
                 if (irc_connected) imgui_push_disabled();
-                ImGui::InputText("", app.settings.channel, CHANNEL_NAME_MAX);
+                if (ImGui::InputText("", app.settings.channel, CHANNEL_NAME_MAX))
+                {
+                    make_lower(app.settings.channel);
+                }
                 if (irc_connected) imgui_pop_disabled();
                 ImGui::PopID();
                 ImGui::NextColumn();

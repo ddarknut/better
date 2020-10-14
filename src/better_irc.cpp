@@ -465,6 +465,8 @@ void irc_handle_message(App* app, IrcMessage* msg)
         {
             case 1: // Welcome message
             {
+                make_lower(app->settings.channel);
+
                 i32 max_len = 8 + CHANNEL_NAME_MAX;
                 char* join_msg = (char*)malloc(max_len+1);
                 sprintf(join_msg, "JOIN #%s\r\n", app->settings.channel);
