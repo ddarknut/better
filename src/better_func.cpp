@@ -82,7 +82,7 @@ void load_settings_from_disk(App* app)
 
             fseek(file, 0, SEEK_END);
             data_in.cbData = ftell(file) - sizeof(u32);
-            fseek(file, 0, SEEK_SET);
+            fseek(file, sizeof(u32), SEEK_SET);
 
             data_in.pbData = (BYTE*) malloc(data_in.cbData);
 
