@@ -983,7 +983,10 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                                 else
                                 {
                                     if (!EmptyClipboard()) add_log(&app, LOGLEVEL_ERROR, "EmptyClipboard failed: %d", GetLastError());
-                                    CryptProtectMemory(app.settings.token, sizeof(app.settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS);
+                                    if (!CryptProtectMemory(app.settings.token, sizeof(app.settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
+                                    {
+                                        add_log(&app, LOGLEVEL_ERROR, "CryptProtectMemory failed: %i", GetLastError());
+                                    }
                                 }
                             }
                         }

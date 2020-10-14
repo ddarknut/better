@@ -91,16 +91,24 @@ void load_settings_from_disk(App* app)
             fclose(file);
 
             auto res = CryptUnprotectData(&data_in, NULL, NULL, NULL, NULL, 0, &data_out);
-            assert(res);
-
-            assert(data_out.cbData == sizeof(app->settings));
-
-            memcpy(&app->settings, data_out.pbData, data_out.cbData);
-
-            if (app->settings.token[0] != '\0')
+            if (!res)
             {
-                CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS);
-                SecureZeroMemory(data_out.pbData, data_out.cbData);
+                add_log(app, LOGLEVEL_ERROR, "Failed to decrypt saved settings (%d). Did Windows user credentials change?", GetLastError());
+            }
+            else
+            {
+                assert(data_out.cbData == sizeof(app->settings));
+
+                memcpy(&app->settings, data_out.pbData, data_out.cbData);
+
+                if (app->settings.token[0] != '\0')
+                {
+                    if (!CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
+                    {
+                        add_log(app, LOGLEVEL_ERROR, "CryptProtectMemory failed: %d", GetLastError());
+                    }
+                    SecureZeroMemory(data_out.pbData, data_out.cbData);
+                }
             }
 
             LocalFree(data_out.pbData);
@@ -121,25 +129,45 @@ void save_settings_to_disk(App* app)
     data_in.pbData = (BYTE*) &app->settings;
 
     bool has_token = app->settings.token[0] != '\0';
-    if (has_token) CryptUnprotectMemory(app->settings.token,
-                                        sizeof(app->settings.token),
-                                        CRYPTPROTECTMEMORY_SAME_PROCESS);
+    if (has_token)
+    {
+        if (!CryptUnprotectMemory(app->settings.token,
+                                  sizeof(app->settings.token),
+                                  CRYPTPROTECTMEMORY_SAME_PROCESS))
+        {
+            add_log(app, LOGLEVEL_ERROR, "CryptUnprotectMemory failed: %i", GetLastError());
+            return;
+        }
+    }
     auto res = CryptProtectData(&data_in, L"User settings for Better", NULL, NULL, NULL, 0, &data_out);
-    if (has_token) CryptProtectMemory(app->settings.token,
-                                      sizeof(app->settings.token),
-                                      CRYPTPROTECTMEMORY_SAME_PROCESS);
-    assert(res);
+    if (has_token)
+    {
+        if (!CryptProtectMemory(app->settings.token,
+                                sizeof(app->settings.token),
+                                CRYPTPROTECTMEMORY_SAME_PROCESS))
+        {
+            add_log(app, LOGLEVEL_ERROR, "CryptProtectMemory failed: %i", GetLastError());
+            return;
+        }
+    }
 
-    char* path = (char*) malloc(strlen(app->base_dir) + 15);
-    sprintf(path, "%ssettings", app->base_dir);
-    FILE* file = fopen(path, "wb");
-    assert(file);
+    if (!res)
+    {
+        add_log(app, LOGLEVEL_ERROR, "Failed to encrypt settings: %i", GetLastError());
+    }
+    else
+    {
+        char* path = (char*) malloc(strlen(app->base_dir) + 15);
+        sprintf(path, "%ssettings", app->base_dir);
+        FILE* file = fopen(path, "wb");
+        assert(file);
 
-    fwrite(&SETTINGS_VERSION, sizeof(u32), 1, file);
-    fwrite(data_out.pbData, data_out.cbData, 1, file);
+        fwrite(&SETTINGS_VERSION, sizeof(u32), 1, file);
+        fwrite(data_out.pbData, data_out.cbData, 1, file);
 
-    free(path);
-    fclose(file);
+        free(path);
+        fclose(file);
+    }
 }
 
 void load_leaderboard_from_disk(App* app)

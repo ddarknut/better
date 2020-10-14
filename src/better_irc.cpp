@@ -228,9 +228,17 @@ void irc_on_connect(App* app)
         }
         else
         {
-            CryptUnprotectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS);
+            if (!CryptUnprotectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
+            {
+                add_log(app, LOGLEVEL_ERROR, "CryptUnprotectMemory failed: %i", GetLastError());
+                return;
+            }
             sprintf(sendbuf, "PASS %s\r\nNICK %s\r\n", app->settings.token, app->settings.username);
-            CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS);
+            if (!CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
+            {
+                add_log(app, LOGLEVEL_ERROR, "CryptProtectMemory failed: %i", GetLastError());
+                return;
+            }
             add_log(app, LOGLEVEL_INFO, "Logging in as \"%s\"...", app->settings.username);
         }
     }
