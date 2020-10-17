@@ -3,8 +3,9 @@
 // TODO: PIE CHARTS AND SHIT
 // TODO: 'bet n%'
 // TODO: undo stack
-// TODO: multibet setting
 // TODO: style menu
+// TODO: Allow use of option name when putting in bets
+// TODO: Cumulative betting mode
 
 #pragma warning (disable: 4996) // This function or variable may be unsafe (strcpy, sprintf, ...)
 
