@@ -476,7 +476,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                     for (int i = 0; i < 100; ++i)
                     {
                         char name[20];
-                        sprintf(name, "person%.3i", i);
+                        sprintf(name, "person%.4i", i);
                         app.point_feedback_queue.insert(std::string(name));
                     }
                 }
