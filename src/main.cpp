@@ -1059,7 +1059,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 ImGui::NextColumn();
 
                 ImGui::Text("Allow multibets");
-                // TODO: imgui_extra("");
+                imgui_extra("If enabled, viewers can place bets on multiple options at the same time. If disabled, placing a bet on one option will remove the viewer's bets on all other options.");
                 ImGui::NextColumn();
                 if (bets_open) imgui_push_disabled();
                 ImGui::PushID("Allow multibets");
