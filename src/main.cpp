@@ -271,7 +271,8 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 auto it_points = app.points.find(*it);
                 if (it_points == app.points.end())
                 {
-                    // TODO: create error
+                    add_log(&app, LOGLEVEL_ERROR, "Feedback queue contained a username that was not found on the leaderboard.");
+                    last_used = it;
                     continue;
                 }
 
@@ -1276,9 +1277,9 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 case FD_CONNECT:
                     if (err != 0)
-                        printf("failed to connect socket\n");
-                        // TODO: handle error
-                    irc_on_connect(&app);
+                        add_log(&app, LOGLEVEL_ERROR, "Failed to connect socket: %i\n", err);
+                    else
+                        irc_on_connect(&app);
                     break;
                 case FD_WRITE:
                     irc_on_write(&app);
