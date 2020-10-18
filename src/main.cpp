@@ -22,6 +22,7 @@
 #include <imgui_internal.h>
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
+#include <implot.h>
 
 #include "better.h"
 #include "better_func.h"
@@ -78,9 +79,9 @@ better_internal void imgui_pop_disabled()
     ImGui::PopItemFlag();
 }
 
-better_internal f32 bar_chart_getter(void* app, i32 i)
+better_internal ImPlotPoint bar_chart_getter(void* app, i32 i)
 {
-    return (f32) ((App*)app)->bet_registry[i].get_point_sum();
+    return ImPlotPoint(i, (f64)((App*)app)->bet_registry[i].get_point_sum());
 }
 
 App app;
@@ -171,6 +172,8 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+    ImPlot::CreateContext();
 
     char* imgui_ini_path = (char*) malloc(base_dir_bufsize + 10);
     sprintf(imgui_ini_path, "%s%s", app.base_dir, "imgui.ini");
@@ -362,7 +365,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
                 if (ImGui::BeginMenu("Help"))
                 {
-                    ImGui::Text("Better %s\n\nMade by ddarknut.\nContact: ddarknut@protonmail.com\n\nLibraries:\nDear ImGui %s - github.com/ocornut/imgui", BETTER_VERSION_STR, ImGui::GetVersion());
+                    ImGui::Text("Better %s\n\nMade by ddarknut.\nContact: ddarknut@protonmail.com\n\nLibraries:\nDear ImGui %s - github.com/ocornut/imgui\nImPlot %s - github.com/epezent/implot", BETTER_VERSION_STR, ImGui::GetVersion(), IMPLOT_VERSION);
                     ImGui::EndMenu();
                 }
 
@@ -821,13 +824,40 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
             if (ImGui::Begin("Stats", &app.settings.show_window_statistics))
             {
                 if (!app.shark_name.empty())
+                {
                     ImGui::Text("Top shark: %s (%llu)", app.shark_name.c_str(), app.shark_points);
+                }
                 if (!app.fish_name.empty())
+                {
+                    if (!app.shark_name.empty())
+                        ImGui::SameLine();
                     ImGui::Text("Biggest fish: %s (%llu)", app.fish_name.c_str(), app.fish_points);
+                }
 
-                char overlay[POINTS_NAME_MAX+10];
-                sprintf(overlay, "%s bet", points_name_cap);
-                ImGui::PlotHistogram("Spoons", bar_chart_getter, &app, (i32)app.bet_registry.size(), 0, overlay, 0, FLT_MAX, ImGui::GetContentRegionAvail());
+                // NOTE: This is currently a pretty bad memory leak, but it will go away once I move away from using the standard library containers (which will be soon).
+                char** labels = (char**) malloc(sizeof(char*) * app.bet_registry.size());
+                f64* positions = (f64*) malloc(sizeof(f64) * app.bet_registry.size());
+                i32 i = 0;
+                for (auto& option : app.bet_registry)
+                {
+                    positions[i] = i;
+                    labels[i++] = option.option_name;
+                }
+                ImPlot::SetNextPlotTicksX(positions, (i32)app.bet_registry.size(), labels);
+                ImPlot::SetNextPlotLimitsX(-0.5, app.bet_registry.size()-0.5, ImGuiCond_Always);
+                ImPlot::FitNextPlotAxes();
+
+                char y_name[POINTS_NAME_MAX + 10];
+                sprintf(y_name, "%s bet", app.settings.points_name);
+                if (ImPlot::BeginPlot("Bets overview", "Option", y_name, ImVec2(-1,-1),
+                                      ImPlotFlags_None,
+                                      ImPlotAxisFlags_None,
+                                      ImPlotAxisFlags_LockMin))
+                {
+                    ImPlot::PlotBarsG("", bar_chart_getter, &app, (i32)app.bet_registry.size(), 0.9);
+
+                    ImPlot::EndPlot();
+                }
             }
             ImGui::End();
         }
@@ -1145,6 +1175,8 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
+
+    ImPlot::DestroyContext();
 
     CleanupDeviceD3D();
     ::DestroyWindow(app.main_wnd);
