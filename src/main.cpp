@@ -451,9 +451,10 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 ImGui::InputInt("Read spoof messages", &read_spoof_messages);
                 ImGui::InputFloat("Spoof message interval", &spoof_interval);
                 ImGui::InputInt("Spoof message chunk", &spoof_chunk_size);
+                const i32 num_pers = 1234;
                 if (ImGui::Button("Fill leaderboard"))
                 {
-                    for (int i = 0; i < 5432; ++i)
+                    for (i32 i = 0; i < num_pers; ++i)
                     {
                         char name[100];
                         sprintf(name, "person%.4i", i);
@@ -473,16 +474,30 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 }
                 if (ImGui::Button("Fill feedback queue"))
                 {
-                    for (int i = 0; i < 100; ++i)
+                    for (i32 i = 0; i < num_pers; ++i)
                     {
                         char name[20];
                         sprintf(name, "person%.4i", i);
                         app.point_feedback_queue.insert(std::string(name));
                     }
                 }
+                if (ImGui::Button("Fill bets") && app.bet_registry.size() > 0)
+                {
+                    for (i32 i = 0; i < num_pers; ++i)
+                    {
+                        char name[100];
+                        sprintf(name, "person%.4i", i);
+                        std::string s_name = std::string(name);
+                        auto it_points = app.points.find(s_name);
+                        if (it_points != app.points.end() && it_points->second > 0)
+                        {
+                            register_bet(&app, &s_name, rand()%(it_points->second), rand()%app.bet_registry.size());
+                        }
+                    }
+                }
                 if (ImGui::Button("Fill log"))
                 {
-                    for (int i = 0; i < 100; ++i)
+                    for (i32 i = 0; i < 100; ++i)
                     {
                         add_log(&app, i % LOGLEVEL_ENUM_SIZE, "This is a log entry! Log level: %i", i % LOGLEVEL_ENUM_SIZE);
                     }
