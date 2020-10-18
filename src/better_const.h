@@ -21,6 +21,9 @@ enum : u8
     BETS_STATUS_CLOSED
 };
 
+const i32 WINDOW_MIN_X = 400;
+const i32 WINDOW_MIN_Y = 350;
+
 const size_t RECV_BUFLEN = 2100;
 const size_t SEND_BUFLEN = 500;
 

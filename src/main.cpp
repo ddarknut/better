@@ -1309,7 +1309,13 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 ::SetWindowPos(hWnd, NULL, suggested_rect->left, suggested_rect->top, suggested_rect->right - suggested_rect->left, suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
             }
             break;
-
+        case WM_GETMINMAXINFO:
+        {
+            MINMAXINFO* mminfo = (MINMAXINFO*) lParam;
+            mminfo->ptMinTrackSize.x = WINDOW_MIN_X;
+            mminfo->ptMinTrackSize.y = WINDOW_MIN_Y;
+            return 0;
+        }
         case BETTER_WM_DNS_COMPLETE:
             irc_on_dns_complete((App*)wParam, (addrinfo*)lParam);
             return 0;
