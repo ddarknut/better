@@ -848,7 +848,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 ImPlot::FitNextPlotAxes();
 
                 char y_name[POINTS_NAME_MAX + 10];
-                sprintf(y_name, "%s bet", app.settings.points_name);
+                sprintf(y_name, "%s bet", points_name_cap);
                 if (ImPlot::BeginPlot("Bets overview", "Option", y_name, ImVec2(-1,-1),
                                       ImPlotFlags_None,
                                       ImPlotAxisFlags_None,
