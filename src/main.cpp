@@ -855,6 +855,9 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
         //////////////////
         if (app.settings.show_window_statistics)
         {
+            char** labels = (char**) malloc(sizeof(char*) * app.bet_registry.size());
+            f64* positions = (f64*) malloc(sizeof(f64) * app.bet_registry.size());
+
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(display_w * 0.5f - 150.f, display_h * 0.5f - 100.f), ImGuiCond_FirstUseEver);
             if (ImGui::Begin("Stats", &app.settings.show_window_statistics))
@@ -870,42 +873,76 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                     ImGui::Text("Biggest fish: %s (%llu)", app.fish_name.c_str(), app.fish_points);
                 }
 
-                char** labels = (char**) malloc(sizeof(char*) * app.bet_registry.size());
-                f64* positions = (f64*) malloc(sizeof(f64) * app.bet_registry.size());
                 i32 i = 0;
                 for (auto& option : app.bet_registry)
                 {
-                    positions[i] = i;
-                    labels[i++] = option.option_name;
+                    if (option.option_name[0] != '\0')
+                        labels[i] = option.option_name;
+                    else
+                    {
+                        labels[i] = (char*) malloc(20); // leaks
+                        sprintf(labels[i], "Option %i", i+1);
+                    }
+                    positions[i++] = i;
                 }
-                ImPlot::SetNextPlotTicksX(positions, (i32)app.bet_registry.size(), labels);
-                ImPlot::SetNextPlotLimitsX(-0.5, app.bet_registry.size()-0.5, ImGuiCond_Always);
-                ImPlot::FitNextPlotAxes();
 
                 char y_name[POINTS_NAME_MAX + 10];
                 sprintf(y_name, "%s bet", points_name_cap);
-                if (ImPlot::BeginPlot("Bets overview", "Option", y_name, ImVec2(-1,-1),
-                                      ImPlotFlags_None,
-                                      ImPlotAxisFlags_None,
-                                      ImPlotAxisFlags_LockMin))
+
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0,0));
+                static bool alt_chart = false;
+                if (ImGui::RadioButton("Pie chart", !alt_chart))
+                    alt_chart = false;
+                ImGui::SameLine();
+                if (ImGui::RadioButton("Bar chart", alt_chart))
+                    alt_chart = true;
+                ImGui::PopStyleVar();
+
+                if (!alt_chart)
                 {
-                    ImPlot::PlotBarsG("", bar_chart_getter, &app, (i32)app.bet_registry.size(), 0.9);
+                    static ImVec2 plot_size(1,1);
+                    ImPlot::SetNextPlotLimits(0, plot_size.x, 0, plot_size.y, ImGuiCond_Always);
+                    // f32 size = BETTER_MIN(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y);
+                    // size = BETTER_MAX(size, 100.0f);
+                    if (ImPlot::BeginPlot("##pie", NULL, NULL, ImVec2(-1, -1),
+                                          ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos,
+                                          ImPlotAxisFlags_NoDecorations,
+                                          ImPlotAxisFlags_NoDecorations))
+                    {
+                        plot_size = ImPlot::GetPlotSize();
+                        ImPlot::PlotPieChart(labels, option_totals.data(), (i32)app.bet_registry.size(), plot_size.x*0.5, plot_size.y*0.5, BETTER_MIN(plot_size.x, plot_size.y)*0.5-5.0, true, "%.0f");
+                        ImPlot::EndPlot();
+                    }
+                }
+                else
+                {
+                    ImPlot::SetNextPlotTicksX(positions, (i32)app.bet_registry.size(), labels);
+                    ImPlot::SetNextPlotLimitsX(-0.5, app.bet_registry.size()-0.5, ImGuiCond_Always);
+                    ImPlot::FitNextPlotAxes();
+                    if (ImPlot::BeginPlot("##bars", NULL, y_name, ImVec2(-1,-1),
+                                          ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos,
+                                          ImPlotAxisFlags_None,
+                                          ImPlotAxisFlags_LockMin))
+                    {
+                        ImPlot::PlotBarsG("", bar_chart_getter, &app, (i32)app.bet_registry.size(), 0.9);
 
-                    if (grand_total_bets > 0)
-                        for (i32 i = 0; i < app.bet_registry.size(); ++i)
-                        {
-                            char bar_text[100];
-                            sprintf(bar_text, "%.0f (%.1f%%)", option_totals[i], 100.0*option_totals[i]/grand_total_bets);
-                            ImPlot::PlotText(bar_text, i, 0, false, ImVec2(0,-10));
-                        }
+                        if (grand_total_bets > 0)
+                            for (i32 i = 0; i < app.bet_registry.size(); ++i)
+                            {
+                                char bar_text[100];
+                                sprintf(bar_text, "%.0f (%.1f%%)", option_totals[i], 100.0*option_totals[i]/grand_total_bets);
+                                ImPlot::PlotText(bar_text, i, 0, false, ImVec2(0,-10));
+                            }
 
-                    ImPlot::EndPlot();
+                        ImPlot::EndPlot();
+                    }
                 }
 
-                free(labels);
-                free(positions);
             }
             ImGui::End();
+
+            free(labels);
+            free(positions);
         }
 
         ////////////////
