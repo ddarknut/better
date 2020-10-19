@@ -48,6 +48,35 @@ void CreateRenderTarget();
 void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+better_internal bool imgui_confirmable_button(char* button_text, ImVec2& button_size)
+{
+    ImGuiStorage* storage = ImGui::GetStateStorage();
+    ImGui::PushID("imgui_confirmable_button");
+    auto id = ImGui::GetID(button_text);
+    bool* button_clicked_once = storage->GetBoolRef(id, false);
+    bool res = false;
+    if (!*button_clicked_once)
+    {
+        if (ImGui::Button(button_text, button_size))
+        {
+            // printf("%lu\n", id);
+            *button_clicked_once = true;
+        }
+    }
+    else
+    {
+        if (ImGui::Button("Confirm", button_size))
+        {
+            *button_clicked_once = false;
+            res = true;
+        }
+        if (!ImGui::IsItemHovered())
+            *button_clicked_once = false;
+    }
+    ImGui::PopID();
+    return res;
+}
+
 better_internal void imgui_tooltip(const char* content)
 {
     if (ImGui::IsItemHovered())
@@ -592,11 +621,11 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
         {
             if (ImGui::Begin("Leaderboard", &app.settings.show_window_points))
             {
-                ImGui::PushID("handout_amount");
-                ImGui::InputScalar("", ImGuiDataType_U64, &app.settings.handout_amount, &POINTS_STEP_SMALL, &POINTS_STEP_BIG);
-                ImGui::PopID();
+                f32 avail_width = ImGui::GetContentRegionAvailWidth() - 2 * style.ItemSpacing.x;
+                ImGui::SetNextItemWidth(avail_width * 0.5f);
+                ImGui::InputScalar("##handout_amount", ImGuiDataType_U64, &app.settings.handout_amount, &POINTS_STEP_SMALL, &POINTS_STEP_BIG);
                 ImGui::SameLine();
-                if (ImGui::Button("Hand out"))
+                if (imgui_confirmable_button("Hand out", ImVec2(avail_width * 0.25f, 0)))
                 {
                     for (auto it = app.points.begin();
                          it != app.points.end();
@@ -610,6 +639,14 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                               });
 
                     add_log(&app, LOGLEVEL_INFO, "Handed out %llu %s to all viewers.", app.settings.handout_amount, app.settings.points_name);
+                }
+
+                ImGui::SameLine();
+                if(imgui_confirmable_button("Reset all", ImVec2(avail_width * 0.25f, 0)))
+                {
+                    reset_bets(&app);
+                    for (auto& entry : app.points)
+                        entry.second = app.settings.starting_points;
                 }
 
                 BETTER_ASSERT(app.points.size() == app.leaderboard.size() && "Points table and leaderboard sizes do not match");
@@ -742,11 +779,8 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 else imgui_pop_disabled();
 
                 ImGui::SameLine();
-                if (ImGui::Button("Reset bets"))
-                {
-                    // TODO: confirmation popup
+                if(imgui_confirmable_button("Refund all bets", ImVec2(6.5f*ImGui::GetFontSize(), 0)))
                     reset_bets(&app);
-                }
                 if (bets_were_open) imgui_pop_disabled();
 
                 ImGui::Text("Total # bets: %i", total_number_of_bets);
@@ -776,9 +810,8 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
                         ImGui::SameLine();
 
-                        if (ImGui::Button("Payout"))
+                        if(imgui_confirmable_button("Payout", ImVec2(3.5f*ImGui::GetFontSize(), 0)))
                         {
-                            // TODO: confirmation popup
                             do_payout(&app, i, option_totals[i], grand_total_bets);
                         }
 
@@ -789,8 +822,8 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                         ImGui::Text("%i", i+1);
                         ImGui::SameLine();
 
-                        ImGui::SetNextItemWidth(5.f * ImGui::GetFontSize());
-                        ImGui::InputText("", it->option_name, sizeof(it->option_name));
+                        ImGui::SetNextItemWidth(0.4f * ImGui::GetContentRegionAvail().x);
+                        ImGui::InputTextWithHint("", "Name...", it->option_name, sizeof(it->option_name));
                         ImGui::SameLine();
 
                         ImGui::Text("%i bets, %.0f %s (%.1f%%)", it->bets.size(), option_totals[i], app.settings.points_name, (grand_total_bets == 0.0)? 0.0 : 100.0*option_totals[i]/grand_total_bets);
@@ -1063,7 +1096,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                     ImGui::AlignTextToFramePadding();
                     ImGui::Text("(hidden)");
                     ImGui::SameLine();
-                    if (ImGui::Button("Clear"))
+                    if (imgui_confirmable_button("Clear", ImVec2(4.0f*ImGui::GetFontSize(), 0)))
                         SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
                 }
 
