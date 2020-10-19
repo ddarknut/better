@@ -243,15 +243,35 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
         app.now = (f64)qpc_ticks.QuadPart / (f64)qpc_frequency.QuadPart;
         f64 dt = app.now - last_frame_time;
 
+        // Handle new messages
         for (auto it = app.read_queue.begin();
              it != app.read_queue.end();
              ++it)
             irc_handle_message(&app, &*it);
         app.read_queue.clear();
 
+        // Update data used in GUI
+        u32 total_number_of_bets = 0;
+        f64 grand_total_bets = 0;
+        std::vector<f64> option_totals;
+        for (auto it_table = app.bet_registry.begin();
+             it_table != app.bet_registry.end();
+             ++it_table)
+        {
+            total_number_of_bets += (u32)it_table->bets.size();
+            option_totals.push_back((f64)it_table->get_point_sum());
+            grand_total_bets += (f64)option_totals.back();
+        }
+        assert(option_totals.size() == app.bet_registry.size());
+
         char points_name_cap[POINTS_NAME_MAX];
         strcpy(points_name_cap, app.settings.points_name);
         points_name_cap[0] = toupper(points_name_cap[0]);
+
+        RECT rect;
+        GetClientRect(app.main_wnd, &rect);
+        i32 display_w = rect.right - rect.left,
+            display_h = rect.bottom - rect.top;
 
         // Check point feedback queue
         // NOTE: If someone spams the !points command, there was a problem where privmsg_queue would fill up with a bunch of messages for that person, and the bot would keep dishing them out long after the person stopped spamming the command. We do a couple things here to minimize that problem: we check that privmsg_queue is empty, and that we are ready to send a new privmsg is so that there is less time between a user being removed from point_feedback_queue to them actually getting the message. Also, we don't go through all of point_feedback_queue -- only enough to create one PRIVMSG.
@@ -308,17 +328,13 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
             irc_queue_write(&app, buf, true);
         }
 
+        // Update timer
         if (app.timer_left > - (f32)app.settings.coyote_time)
         {
             app.timer_left -= (f32)dt;
             if (app.timer_left <= - (f32)app.settings.coyote_time)
                 close_bets(&app);
         }
-
-        RECT rect;
-        GetClientRect(app.main_wnd, &rect);
-        i32 display_w = rect.right - rect.left,
-            display_h = rect.bottom - rect.top;
 
         // Start the Dear ImGui frame
         ImGui_ImplDX11_NewFrame();
@@ -733,25 +749,9 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 }
                 if (bets_were_open) imgui_pop_disabled();
 
-                u32 number_of_bets = 0;
-                f64 grand_total = 0;
-                std::vector<f64> option_totals;
-                for (auto it_table = app.bet_registry.begin();
-                     it_table != app.bet_registry.end();
-                     ++it_table)
-                {
-                    number_of_bets += (u32)it_table->bets.size();
-                    option_totals.push_back(0);
-                    for (auto it_bet = it_table->bets.begin();
-                         it_bet != it_table->bets.end();
-                         ++it_bet)
-                        option_totals.back() += it_bet->second;
-                    grand_total += (f64)option_totals.back();
-                }
-
-                ImGui::Text("Total # bets: %i", number_of_bets);
+                ImGui::Text("Total # bets: %i", total_number_of_bets);
                 ImGui::SameLine(0, ImGui::GetFontSize());
-                ImGui::Text("Total %s: %.0f", app.settings.points_name, grand_total);
+                ImGui::Text("Total %s: %.0f", app.settings.points_name, grand_total_bets);
 
                 ImGui::Separator();
 
@@ -779,7 +779,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                         if (ImGui::Button("Payout"))
                         {
                             // TODO: confirmation popup
-                            do_payout(&app, i, option_totals[i], grand_total);
+                            do_payout(&app, i, option_totals[i], grand_total_bets);
                         }
 
                         if (bets_were_open) imgui_pop_disabled();
@@ -793,7 +793,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                         ImGui::InputText("", it->option_name, sizeof(it->option_name));
                         ImGui::SameLine();
 
-                        ImGui::Text("%i bets, %.0f %s (%.1f%%)", it->bets.size(), option_totals[i], app.settings.points_name, (grand_total == 0.0)? 0.0 : 100.0*option_totals[i]/grand_total);
+                        ImGui::Text("%i bets, %.0f %s (%.1f%%)", it->bets.size(), option_totals[i], app.settings.points_name, (grand_total_bets == 0.0)? 0.0 : 100.0*option_totals[i]/grand_total_bets);
 
                         ImGui::Separator();
 
@@ -806,7 +806,10 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
                     if (bets_were_open) imgui_push_disabled();
                     if (ImGui::Button("+", ImVec2(ImGui::GetFrameHeight(), 0)))
+                    {
                         app.bet_registry.push_back(BetTable());
+                        option_totals.push_back(0);
+                    }
                     if (bets_were_open) imgui_pop_disabled();
                 }
                 ImGui::EndChild();
@@ -834,7 +837,6 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                     ImGui::Text("Biggest fish: %s (%llu)", app.fish_name.c_str(), app.fish_points);
                 }
 
-                // NOTE: This is currently a pretty bad memory leak, but it will go away once I move away from using the standard library containers (which will be soon).
                 char** labels = (char**) malloc(sizeof(char*) * app.bet_registry.size());
                 f64* positions = (f64*) malloc(sizeof(f64) * app.bet_registry.size());
                 i32 i = 0;
@@ -856,8 +858,19 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 {
                     ImPlot::PlotBarsG("", bar_chart_getter, &app, (i32)app.bet_registry.size(), 0.9);
 
+                    if (grand_total_bets > 0)
+                        for (i32 i = 0; i < app.bet_registry.size(); ++i)
+                        {
+                            char bar_text[100];
+                            sprintf(bar_text, "%.0f (%.1f%%)", option_totals[i], 100.0*option_totals[i]/grand_total_bets);
+                            ImPlot::PlotText(bar_text, i, 0, false, ImVec2(0,-10));
+                        }
+
                     ImPlot::EndPlot();
                 }
+
+                free(labels);
+                free(positions);
             }
             ImGui::End();
         }
