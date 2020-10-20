@@ -796,6 +796,8 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 {
                     auto removal = app.bet_registry.end();
 
+                    bool bets_exist = grand_total_bets > 0;
+
                     i32 i = 0;
                     for (auto it = app.bet_registry.begin();
                          it != app.bet_registry.end();
@@ -805,10 +807,15 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
                         if (bets_were_open) imgui_push_disabled();
 
+                        if (bets_exist) imgui_push_disabled();
                         if (ImGui::Button("-", ImVec2(ImGui::GetFrameHeight(), 0)))
                         {
-                            // TODO: confirmation popup
                             removal = it;
+                        }
+                        if (bets_exist)
+                        {
+                            imgui_pop_disabled();
+                            imgui_tooltip("Refund bets or make a payout before removing options.");
                         }
 
                         ImGui::SameLine();
