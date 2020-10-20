@@ -46,11 +46,16 @@ void add_log(App* app, u8 log_level, const char* const fmt ...)
         {
             free(app->log_buffer[pos].content);
             app->log_first_index = (app->log_first_index+1)%LOG_BUFFER_MAX;
+            if (pos == app->unread_error)
+                app->unread_error = -1;
         }
         else
             ++app->log_count;
         app->log_buffer[pos].level = log_level;
         app->log_buffer[pos].content = buffer;
+
+        if (log_level == LOGLEVEL_ERROR)
+            app->unread_error = pos;
     }
     else
     {

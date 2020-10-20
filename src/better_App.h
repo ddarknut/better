@@ -59,6 +59,7 @@ struct App
     f32 last_privmsg_time = 0.0f;
     f32 last_connect_attempt = 0.0f;
 
+    i32 unread_error = -1;
     bool log_filter[LOGLEVEL_ENUM_SIZE] =
     {
         false,

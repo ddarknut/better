@@ -449,6 +449,13 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 {
                     ImGui::AlignTextToFramePadding();
                     ImGui::Text(text);
+                    if (app.unread_error != -1)
+                    {
+                        ImGui::SameLine();
+                        ImGui::TextColored(LOG_TEXT_COLORS[LOGLEVEL_ERROR], "Log contains new errors.");
+                        if (ImGui::IsItemClicked())
+                            app.settings.show_window_log = true;
+                    }
                 }
                 ImGui::EndChild();
                 ImGui::PopStyleColor(2);
@@ -975,12 +982,18 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 ImGui::Checkbox("Info",     &app.log_filter[LOGLEVEL_INFO]); ImGui::SameLine();
                 ImGui::Checkbox("Warnings", &app.log_filter[LOGLEVEL_WARN]); ImGui::SameLine();
                 ImGui::Checkbox("Errors",   &app.log_filter[LOGLEVEL_ERROR]);
+                if (!app.log_filter[LOGLEVEL_ERROR] && app.unread_error != -1)
+                {
+                    ImGui::SameLine();
+                    ImGui::TextColored(LOG_TEXT_COLORS[LOGLEVEL_ERROR], "*");
+                }
                 ImGui::PopStyleVar();
 
                 ImGui::Separator();
 
-                better_persist bool scroll_to_bottom = false;
-                better_persist bool is_at_bottom = true;
+                static bool goto_error = false;
+                static bool scroll_to_bottom = false;
+                static bool is_at_bottom = true;
                 if (ImGui::BeginChild("LogScrollingRegion", ImVec2(0,-ImGui::GetFrameHeightWithSpacing())))
                 {
                     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0,0));
@@ -993,6 +1006,17 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                         if (!app.log_filter[app.log_buffer[actual_i].level]) continue;
                         ImGui::PushStyleColor(ImGuiCol_Text, LOG_TEXT_COLORS[app.log_buffer[actual_i].level]);
                         ImGui::TextWrapped(app.log_buffer[actual_i].content);
+                        if (actual_i == app.unread_error)
+                        {
+                            if (ImGui::IsItemVisible())
+                                app.unread_error = -1;
+                            else if (goto_error)
+                            {
+                                ImGui::SetScrollHereY(0.5f);
+                                scroll_to_bottom = false;
+                                goto_error = false;
+                            }
+                        }
                         ImGui::PopStyleColor();
                     }
                     ImGui::PopStyleVar();
@@ -1004,8 +1028,21 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 }
                 ImGui::EndChild();
 
-                if (!is_at_bottom && ImGui::Button("Scroll to bottom"))
-                    scroll_to_bottom = true;
+                if (!is_at_bottom)
+                {
+                    if (ImGui::Button("Scroll to bottom"))
+                        scroll_to_bottom = true;
+                }
+                if (app.unread_error != -1)
+                {
+                    if (!is_at_bottom)
+                        ImGui::SameLine();
+                    if (ImGui::Button("Go to last error"))
+                    {
+                        app.log_filter[LOGLEVEL_ERROR] = true;
+                        goto_error = true;
+                    }
+                }
             }
             ImGui::End();
         }
