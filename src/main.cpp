@@ -454,7 +454,10 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                         ImGui::SameLine();
                         ImGui::TextColored(LOG_TEXT_COLORS[LOGLEVEL_ERROR], "Log contains new errors.");
                         if (ImGui::IsItemClicked())
+                        {
                             app.settings.show_window_log = true;
+                            app.should_focus_log_window = true;
+                        }
                     }
                 }
                 ImGui::EndChild();
@@ -972,6 +975,13 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
         ////////////////
         if (app.settings.show_window_log)
         {
+            if (app.should_focus_log_window)
+            {
+                app.should_focus_log_window = false;
+                ImGui::SetNextWindowFocus();
+                ImGui::SetNextWindowCollapsed(false);
+            }
+
             if (ImGui::Begin("Log", &app.settings.show_window_log))
             {
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0,0));
