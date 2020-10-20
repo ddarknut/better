@@ -17,7 +17,7 @@ struct Settings
     bool show_window_points = true;
     bool show_window_bets = true;
     bool show_window_debug = false;
-    bool show_window_statistics = false;
+    bool show_window_statistics = true;
 
     bool auto_connect = false;
     char channel[CHANNEL_NAME_MAX] = "";

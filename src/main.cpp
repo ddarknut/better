@@ -459,22 +459,28 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
             main_dockspace_id = ImGui::GetID("MyDockSpace");
 
+            ImVec2 avail = ImGui::GetContentRegionAvail();
             if (ImGui::DockBuilderGetNode(main_dockspace_id) == NULL)
             {
                 ImGui::DockBuilderRemoveNode(main_dockspace_id); // Clear out existing layout
                 ImGui::DockBuilderAddNode(main_dockspace_id, ImGuiDockNodeFlags_DockSpace); // Add empty node
-                ImGui::DockBuilderSetNodeSize(main_dockspace_id, ImVec2((f32)display_w, 1.f));
+                ImGui::DockBuilderSetNodeSize(main_dockspace_id, ImVec2(avail.x, avail.y));
 
                 ImGuiID dock_id_current = main_dockspace_id;
+
                 ImGuiID dock_id_log = ImGui::DockBuilderSplitNode(dock_id_current, ImGuiDir_Down, 1.f-0.618f, NULL, &dock_id_current);
+
+                ImGui::DockBuilderSetNodeSize(dock_id_current, ImVec2(avail.x, avail.y*0.618f));
                 ImGuiID dock_id_left = ImGui::DockBuilderSplitNode(dock_id_current, ImGuiDir_Left, 1.f-0.618f, NULL, &dock_id_current);
-                // ImGuiID dock_id_bets = ImGui::DockBuilderSplitNode(dock_id_current, ImGuiDir_Up, 100.f, NULL, &dock_id_current);
+
+                ImGui::DockBuilderSetNodeSize(dock_id_current, ImVec2(avail.x*0.618f, avail.y));
+                ImGuiID dock_id_bets = ImGui::DockBuilderSplitNode(dock_id_current, ImGuiDir_Up, 0.5f, NULL, &dock_id_current);
 
                 ImGui::DockBuilderDockWindow("Log", dock_id_log);
                 ImGui::DockBuilderDockWindow("Leaderboard", dock_id_left);
                 ImGui::DockBuilderDockWindow("Chat", dock_id_left);
-                ImGui::DockBuilderDockWindow("Bets", dock_id_current);
-                // ImGui::DockBuilderDockWindow("Stats", dock_id_current);
+                ImGui::DockBuilderDockWindow("Bets", dock_id_bets);
+                ImGui::DockBuilderDockWindow("Stats", dock_id_current);
 
                 ImGui::DockBuilderFinish(main_dockspace_id);
             }
@@ -911,8 +917,6 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 {
                     static ImVec2 plot_size(1,1);
                     ImPlot::SetNextPlotLimits(0, plot_size.x, 0, plot_size.y, ImGuiCond_Always);
-                    // f32 size = BETTER_MIN(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y);
-                    // size = BETTER_MAX(size, 100.0f);
                     if (ImPlot::BeginPlot("##pie", NULL, NULL, ImVec2(-1, -1),
                                           ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect | ImPlotFlags_NoMousePos,
                                           ImPlotAxisFlags_NoDecorations,
