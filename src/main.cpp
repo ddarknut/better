@@ -913,10 +913,10 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0,0));
                 static bool alt_chart = false;
-                if (ImGui::RadioButton("Pie chart", !alt_chart))
+                if (ImGui::RadioButton("Pie", !alt_chart))
                     alt_chart = false;
                 ImGui::SameLine();
-                if (ImGui::RadioButton("Bar chart", alt_chart))
+                if (ImGui::RadioButton("Bars", alt_chart))
                     alt_chart = true;
                 ImGui::PopStyleVar();
 
@@ -930,7 +930,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                                           ImPlotAxisFlags_NoDecorations))
                     {
                         plot_size = ImPlot::GetPlotSize();
-                        ImPlot::PlotPieChart(labels, option_totals.data(), (i32)app.bet_registry.size(), plot_size.x*0.5, plot_size.y*0.5, BETTER_MIN(plot_size.x, plot_size.y)*0.5-5.0, true, "%.0f");
+                        ImPlot::PlotPieChart(labels, option_totals.data(), (i32)app.bet_registry.size(), plot_size.x*0.5, plot_size.y*0.5, BETTER_MIN(plot_size.x, plot_size.y)*0.5-5.0, true, "%.0f (%.1f%%)", 90, true);
                         ImPlot::EndPlot();
                     }
                 }
