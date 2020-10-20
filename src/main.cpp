@@ -1,6 +1,5 @@
 // TODO: Allow secure socket connection (SSL)
 // TODO: Save window position and size to disk
-// TODO: PIE CHARTS AND SHIT
 // TODO: 'bet n%'
 // TODO: undo stack
 // TODO: style menu
@@ -867,6 +866,8 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
         {
             char** labels = (char**) malloc(sizeof(char*) * app.bet_registry.size());
             f64* positions = (f64*) malloc(sizeof(f64) * app.bet_registry.size());
+            for (int i = 0; i < app.bet_registry.size(); ++i)
+                labels[i] = (char*) malloc(20);
 
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(display_w * 0.5f - 150.f, display_h * 0.5f - 100.f), ImGuiCond_FirstUseEver);
@@ -887,13 +888,11 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 for (auto& option : app.bet_registry)
                 {
                     if (option.option_name[0] != '\0')
-                        labels[i] = option.option_name;
+                        sprintf(labels[i], "%s", option.option_name);
                     else
-                    {
-                        labels[i] = (char*) malloc(20); // leaks
                         sprintf(labels[i], "Option %i", i+1);
-                    }
-                    positions[i++] = i;
+                    positions[i] = i;
+                    ++i;
                 }
 
                 char y_name[POINTS_NAME_MAX + 10];
@@ -951,6 +950,8 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
             }
             ImGui::End();
 
+            for (int i = 0; i < app.bet_registry.size(); ++i)
+                free(labels[i]);
             free(labels);
             free(positions);
         }
