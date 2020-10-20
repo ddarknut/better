@@ -65,6 +65,8 @@ better_internal bool imgui_confirmable_button(char* button_text, ImVec2& button_
     }
     else
     {
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.85f,0.1f,0.1f,1));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(1,0,0,1));
         if (ImGui::Button("Confirm", button_size))
         {
             *button_clicked_once = false;
@@ -72,6 +74,7 @@ better_internal bool imgui_confirmable_button(char* button_text, ImVec2& button_
         }
         if (!ImGui::IsItemHovered())
             *button_clicked_once = false;
+        ImGui::PopStyleColor(2);
     }
     ImGui::PopID();
     return res;
