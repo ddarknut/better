@@ -28,6 +28,7 @@
 #include "better_App.h"
 #include "better_irc.h"
 #include "better_bets.h"
+#include "better_imgui_utils.h"
 
 #if BETTER_DEBUG
 extern f32 spoof_interval;
@@ -46,76 +47,6 @@ void CleanupDeviceD3D();
 void CreateRenderTarget();
 void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-better_internal bool imgui_confirmable_button(char* button_text, ImVec2& button_size, bool skip_confirm=false)
-{
-    ImGuiStorage* storage = ImGui::GetStateStorage();
-    ImGui::PushID("imgui_confirmable_button");
-    auto id = ImGui::GetID(button_text);
-    bool* button_clicked_once = storage->GetBoolRef(id, false);
-    bool res = false;
-    if (!*button_clicked_once)
-    {
-        if (ImGui::Button(button_text, button_size))
-        {
-            if (skip_confirm)
-                res = true;
-            else
-                *button_clicked_once = true;
-        }
-    }
-    else
-    {
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.85f,0.1f,0.1f,1));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(1,0,0,1));
-        if (ImGui::Button("Confirm", button_size))
-        {
-            *button_clicked_once = false;
-            res = true;
-        }
-        if (!ImGui::IsItemHovered())
-            *button_clicked_once = false;
-        ImGui::PopStyleColor(2);
-    }
-    ImGui::PopID();
-    return res;
-}
-
-better_internal void imgui_tooltip(const char* content)
-{
-    if (ImGui::IsItemHovered())
-    {
-        ImGui::BeginTooltip();
-        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(content);
-        ImGui::PopTextWrapPos();
-        ImGui::EndTooltip();
-    }
-}
-
-better_internal void imgui_extra(const char* content)
-{
-    ImGui::SameLine();
-    ImGui::TextDisabled("(?)");
-    imgui_tooltip(content);
-}
-
-better_internal void imgui_push_disabled()
-{
-    ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.6f);
-}
-
-better_internal void imgui_pop_disabled()
-{
-    ImGui::PopStyleVar();
-    ImGui::PopItemFlag();
-}
-
-better_internal ImPlotPoint bar_chart_getter(void* app, i32 i)
-{
-    return ImPlotPoint(i, (f64)((App*)app)->bet_registry[i].get_point_sum());
-}
 
 App app;
 
