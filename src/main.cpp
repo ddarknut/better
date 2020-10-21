@@ -47,7 +47,7 @@ void CreateRenderTarget();
 void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-better_internal bool imgui_confirmable_button(char* button_text, ImVec2& button_size)
+better_internal bool imgui_confirmable_button(char* button_text, ImVec2& button_size, bool skip_confirm=false)
 {
     ImGuiStorage* storage = ImGui::GetStateStorage();
     ImGui::PushID("imgui_confirmable_button");
@@ -58,8 +58,10 @@ better_internal bool imgui_confirmable_button(char* button_text, ImVec2& button_
     {
         if (ImGui::Button(button_text, button_size))
         {
-            // printf("%lu\n", id);
-            *button_clicked_once = true;
+            if (skip_confirm)
+                res = true;
+            else
+                *button_clicked_once = true;
         }
     }
     else
@@ -643,7 +645,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 ImGui::SetNextItemWidth(avail_width * 0.5f);
                 ImGui::InputScalar("##handout_amount", ImGuiDataType_U64, &app.settings.handout_amount, &POINTS_STEP_SMALL, &POINTS_STEP_BIG);
                 ImGui::SameLine();
-                if (imgui_confirmable_button("Hand out", ImVec2(avail_width * 0.25f, 0)))
+                if (imgui_confirmable_button("Hand out", ImVec2(avail_width * 0.25f, 0), !app.settings.confirm_handout))
                 {
                     for (auto it = app.points.begin();
                          it != app.points.end();
@@ -660,7 +662,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 }
 
                 ImGui::SameLine();
-                if(imgui_confirmable_button("Reset all", ImVec2(avail_width * 0.25f, 0)))
+                if(imgui_confirmable_button("Reset all", ImVec2(avail_width * 0.25f, 0), !app.settings.confirm_leaderboard_reset))
                 {
                     reset_bets(&app);
                     for (auto& entry : app.points)
@@ -797,7 +799,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 else imgui_pop_disabled();
 
                 ImGui::SameLine();
-                if(imgui_confirmable_button("Refund all bets", ImVec2(6.5f*ImGui::GetFontSize(), 0)))
+                if(imgui_confirmable_button("Refund all bets", ImVec2(6.5f*ImGui::GetFontSize(), 0), !app.settings.confirm_refund))
                     reset_bets(&app);
                 if (bets_were_open) imgui_pop_disabled();
 
@@ -835,7 +837,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
                         ImGui::SameLine();
 
-                        if(imgui_confirmable_button("Payout", ImVec2(3.5f*ImGui::GetFontSize(), 0)))
+                        if(imgui_confirmable_button("Payout", ImVec2(3.5f*ImGui::GetFontSize(), 0), !app.settings.confirm_payout))
                         {
                             do_payout(&app, i, option_totals[i], grand_total_bets);
                         }
@@ -1295,6 +1297,33 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 ImGui::PushID("announce_payout");
                 ImGui::Checkbox("", &app.settings.announce_payout);
                 ImGui::PopID();
+                ImGui::NextColumn();
+
+                ImGui::Separator();
+
+                ImGui::Text("Confirmation");
+                ImGui::NextColumn();
+                ImGui::NextColumn();
+                imgui_extra("Enable click-twice confirmation for functions that you don't want to click accidentally.");
+
+                ImGui::Text("Handouts");
+                ImGui::NextColumn();
+                ImGui::Checkbox("##confirm_handout", &app.settings.confirm_handout);
+                ImGui::NextColumn();
+
+                ImGui::Text("Resetting leaderboard");
+                ImGui::NextColumn();
+                ImGui::Checkbox("##confirm_leaderboard_reset", &app.settings.confirm_leaderboard_reset);
+                ImGui::NextColumn();
+
+                ImGui::Text("Refunding bets");
+                ImGui::NextColumn();
+                ImGui::Checkbox("##confirm_refund", &app.settings.confirm_refund);
+                ImGui::NextColumn();
+
+                ImGui::Text("Payouts");
+                ImGui::NextColumn();
+                ImGui::Checkbox("##confirm_payout", &app.settings.confirm_payout);
                 ImGui::NextColumn();
             }
             ImGui::End();

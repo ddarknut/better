@@ -4,7 +4,7 @@
 #include "better_types.h"
 #include "better_const.h"
 
-const u32 SETTINGS_VERSION = 2;
+const u32 SETTINGS_VERSION = 3;
 
 struct Settings
 {
@@ -35,6 +35,11 @@ struct Settings
     bool announce_bets_open = true;
     bool announce_bets_close = true;
     bool announce_payout = true;
+
+    bool confirm_handout = true;
+    bool confirm_leaderboard_reset = true;
+    bool confirm_refund = true;
+    bool confirm_payout = true;
 };
 
 #endif // BETTER_SETTINGS_H
