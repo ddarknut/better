@@ -596,6 +596,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 if(imgui_confirmable_button("Reset all", ImVec2(avail_width * 0.25f, 0), !app.settings.confirm_leaderboard_reset))
                 {
                     reset_bets(&app);
+                    add_log(&app, LOGLEVEL_INFO, "Resetting everyone's %s to the starting amount.", app.settings.points_name);
                     for (auto& entry : app.points)
                         entry.second = app.settings.starting_points;
                 }
@@ -780,8 +781,10 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                         ImGui::Text("%i", i+1);
                         ImGui::SameLine();
 
+                        char option_hint[32];
+                        sprintf(option_hint, "Option %i", i+1);
                         ImGui::SetNextItemWidth(0.4f * ImGui::GetContentRegionAvail().x);
-                        ImGui::InputTextWithHint("", "Name...", it->option_name, sizeof(it->option_name));
+                        ImGui::InputTextWithHint("", option_hint, it->option_name, sizeof(it->option_name));
                         ImGui::SameLine();
 
                         ImGui::Text("%i bets, %.0f %s (%.1f%%)", it->bets.size(), option_totals[i], app.settings.points_name, (grand_total_bets == 0.0)? 0.0 : 100.0*option_totals[i]/grand_total_bets);
@@ -887,7 +890,9 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                             {
                                 char bar_text[100];
                                 sprintf(bar_text, "%.0f (%.1f%%)", option_totals[i], 100.0*option_totals[i]/grand_total_bets);
+                                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0,0,0,1));
                                 ImPlot::PlotText(bar_text, i, 0, false, ImVec2(0,-10));
+                                ImGui::PopStyleColor();
                             }
 
                         ImPlot::EndPlot();
@@ -1026,7 +1031,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
                 f32 x = ImGui::GetContentRegionAvail().x;
                 ImGui::Columns(2, "settings_columns", false);
-                ImGui::SetColumnWidth(0, BETTER_MAX(x * 0.35f, 8 * ImGui::GetFontSize()));
+                ImGui::SetColumnWidth(0, BETTER_MAX(x * 0.35f, 9 * ImGui::GetFontSize()));
 
                 ImGui::Text("Channel");
                 ImGui::NextColumn();
@@ -1173,7 +1178,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
                 bool bets_open = bets_status(&app) != BETS_STATUS_CLOSED;
 
-                ImGui::Text("Starting points");
+                ImGui::Text("Starting %s", app.settings.points_name);
                 ImGui::NextColumn();
                 ImGui::PushID("Starting points");
                 ImGui::SetNextItemWidth(widget_width);
