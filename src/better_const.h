@@ -3,7 +3,7 @@
 
 #include "imgui.h"
 
-#define BETTER_VERSION_STR "0.1.1 WIP"
+#define BETTER_VERSION_STR "0.2.0"
 
 enum : u8
 {

@@ -1,10 +1,17 @@
 ==================================================
-Version 0.1.1 (WIP)
+Version 0.2.0 (2020-10-23)
 ==================================================
 
 - Added in-memory encryption of OAuth token.
 - Added the option to disable multibets.
-
+- Added pie chart and improved bar chart.
+- Added simple click-twice confirmation for destructive functions.
+- Made other minor UI tweaks and improvements.
+- Performance improvement: Whenever there is no i/o and no need to redraw the
+  GUI, the program will sleep and generally stay at 0% CPU usage.
+- Fixed a bug where using uppercase characters in the channel name would cause
+  the bot to join the wrong room.
+- Improved error handling for certain functions.
 
 ==================================================
 Version 0.1.0 (2020-07-23)
