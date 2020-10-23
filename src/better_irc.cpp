@@ -121,10 +121,8 @@ void irc_disconnect(App* app)
 
 void irc_schedule_reconnect(App* app)
 {
-    SetTimer(app->main_wnd,
-             TID_ALLOW_AUTO_RECONNECT,
-             (UINT)MIN_RECONNECT_INTERVAL,
-             NULL);
+    if (!SetTimer(app->main_wnd, TID_ALLOW_AUTO_RECONNECT, (UINT)MIN_RECONNECT_INTERVAL, NULL))
+        add_log(app, LOGLEVEL_ERROR, "SetTimer failed: %d", GetLastError());
 }
 
 void irc_timed_reconnect(App* app)
@@ -185,10 +183,8 @@ void irc_on_dns_complete(App* app, addrinfo* result)
     }
 
     app->allow_auto_reconnect = false;
-    SetTimer(app->main_wnd,
-             TID_ALLOW_AUTO_RECONNECT,
-             MIN_RECONNECT_INTERVAL,
-             NULL);
+    if (!SetTimer(app->main_wnd, TID_ALLOW_AUTO_RECONNECT, MIN_RECONNECT_INTERVAL, NULL))
+        add_log(app, LOGLEVEL_ERROR, "SetTimer failed: %d", GetLastError());
 
     i32 res = WSAAsyncSelect(app->sock,
                              app->main_wnd,
@@ -228,10 +224,8 @@ void irc_on_connect(App* app)
 
     // freeaddrinfo(result);
 
-    SetTimer(app->main_wnd,
-             TID_PRIVMSG_READY,
-             get_privmsg_interval(app),
-             NULL);
+    if (!SetTimer(app->main_wnd, TID_PRIVMSG_READY, get_privmsg_interval(app), NULL))
+        add_log(app, LOGLEVEL_ERROR, "SetTimer failed: %d", GetLastError());
 
     char* sendbuf = (char*) malloc(SEND_BUFLEN+1);
 
@@ -312,6 +306,8 @@ void irc_on_write(App* app)
         }
 
         app->privmsg_ready = false;
+        if (!SetTimer(app->main_wnd, TID_PRIVMSG_READY, get_privmsg_interval(app), NULL))
+            add_log(app, LOGLEVEL_ERROR, "SetTimer failed: %d", GetLastError());
 
         char* buf = app->privmsg_queue.front();
         irc_send_buffer(app, buf);

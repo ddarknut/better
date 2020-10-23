@@ -1459,16 +1459,15 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
                 case TID_ALLOW_AUTO_RECONNECT: {
                     app.allow_auto_reconnect = true;
-                    KillTimer(app.main_wnd, TID_ALLOW_AUTO_RECONNECT);
+                    if (!KillTimer(app.main_wnd, TID_ALLOW_AUTO_RECONNECT))
+                        add_log(&app, LOGLEVEL_ERROR, "KillTimer failed: %d", GetLastError());
                     return 0;
                 }
 
                 case TID_PRIVMSG_READY: {
                     app.privmsg_ready = true;
-                    SetTimer(app.main_wnd,
-                             TID_PRIVMSG_READY,
-                             get_privmsg_interval(&app),
-                             NULL);
+                    if (!KillTimer(app.main_wnd, TID_PRIVMSG_READY))
+                        add_log(&app, LOGLEVEL_ERROR, "KillTimer failed: %d", GetLastError());
                     return 0;
                 }
             }

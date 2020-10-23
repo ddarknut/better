@@ -241,7 +241,7 @@ u32 get_privmsg_interval(App* app)
 
 #if BETTER_DEBUG
 
-i32 spoof_message_file_index;
+i32 spoof_message_file_index = -1;
 f32 spoof_interval = 0.5f;
 i32 spoof_chunk_size = 10;
 static f32 last_read_time = 0;
@@ -249,15 +249,14 @@ static i32 last_read_pos[2] = {};
 
 void start_reading_spoof_messages(App* app)
 {
-    SetTimer(app->main_wnd,
-             TID_SPOOF_MESSAGES,
-             (UINT)(spoof_interval*1000.0f),
-             NULL);
+    if (!SetTimer(app->main_wnd, TID_SPOOF_MESSAGES, (UINT)(spoof_interval*1000.0f), NULL))
+        add_log(app, LOGLEVEL_ERROR, "SetTimer failed: %d", GetLastError());
 }
 
 void stop_reading_spoof_messages(App* app)
 {
-    KillTimer(app->main_wnd, TID_SPOOF_MESSAGES);
+    if (!KillTimer(app->main_wnd, TID_SPOOF_MESSAGES))
+        add_log(app, LOGLEVEL_ERROR, "KillTimer failed: %d", GetLastError());
 }
 
 void read_spoof_messages(App* app)
