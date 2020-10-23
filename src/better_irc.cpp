@@ -119,9 +119,17 @@ void irc_disconnect(App* app)
     app->joined_channel = false;
 }
 
+void irc_schedule_reconnect(App* app)
+{
+    SetTimer(app->main_wnd,
+             TID_ALLOW_AUTO_RECONNECT,
+             (UINT)MIN_RECONNECT_INTERVAL,
+             NULL);
+}
+
 void irc_timed_reconnect(App* app)
 {
-    if (app->now - app->last_connect_attempt > MIN_RECONNECT_INTERVAL)
+    if (app->allow_auto_reconnect)
     {
         add_log(app, LOGLEVEL_INFO, "Attempting to reconnect...");
 
@@ -176,7 +184,11 @@ void irc_on_dns_complete(App* app, addrinfo* result)
         abort();
     }
 
-    app->last_connect_attempt = (f32)app->now;
+    app->allow_auto_reconnect = false;
+    SetTimer(app->main_wnd,
+             TID_ALLOW_AUTO_RECONNECT,
+             MIN_RECONNECT_INTERVAL,
+             NULL);
 
     i32 res = WSAAsyncSelect(app->sock,
                              app->main_wnd,
@@ -215,6 +227,11 @@ void irc_on_connect(App* app)
     // TODO: Should really try the next address returned by getaddrinfo (ptr->ai_next) if the connect call failed. But for this simple example we just free the resources returned by getaddrinfo and print an error message
 
     // freeaddrinfo(result);
+
+    SetTimer(app->main_wnd,
+             TID_PRIVMSG_READY,
+             get_privmsg_interval(app),
+             NULL);
 
     char* sendbuf = (char*) malloc(SEND_BUFLEN+1);
 
@@ -283,7 +300,7 @@ void irc_on_write(App* app)
 
     while (app->privmsg_queue.size() > 0)
     {
-        if (app->now - app->last_privmsg_time < get_privmsg_interval(app))
+        if (!app->privmsg_ready)
         {
             // TODO: Instead of ignoring the FD_WRITE event and immediately ask for a new one here, we can just wait with calling WSAAsyncSelect until we are *actually* ready to send a message. That way, we aren't constantly receiving FD_WRITE events and not acting on them even though privmsg_queue isn't empty.
             i32 res = WSAAsyncSelect(app->sock,
@@ -294,7 +311,7 @@ void irc_on_write(App* app)
             break;
         }
 
-        app->last_privmsg_time = (f32)app->now;
+        app->privmsg_ready = false;
 
         char* buf = app->privmsg_queue.front();
         irc_send_buffer(app, buf);

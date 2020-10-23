@@ -232,7 +232,7 @@ void save_leaderboard_to_disk(App* app)
     fclose(file);
 }
 
-f32 get_privmsg_interval(App* app)
+u32 get_privmsg_interval(App* app)
 {
     if (app->settings.is_mod)
         return PRIVMSG_MIN_INTERVAL_AS_MOD;
@@ -241,17 +241,28 @@ f32 get_privmsg_interval(App* app)
 
 #if BETTER_DEBUG
 
+i32 spoof_message_file_index;
 f32 spoof_interval = 0.5f;
 i32 spoof_chunk_size = 10;
 static f32 last_read_time = 0;
 static i32 last_read_pos[2] = {};
 
-void maybe_read_spoof_messages(App* app, i32 file_i)
+void start_reading_spoof_messages(App* app)
 {
-    if (app->now - last_read_time < spoof_interval) return;
+    SetTimer(app->main_wnd,
+             TID_SPOOF_MESSAGES,
+             (UINT)(spoof_interval*1000.0f),
+             NULL);
+}
 
-    last_read_time = (f32)app->now;
+void stop_reading_spoof_messages(App* app)
+{
+    KillTimer(app->main_wnd, TID_SPOOF_MESSAGES);
+}
 
+void read_spoof_messages(App* app)
+{
+    i32 file_i = spoof_message_file_index;
     char* path = (char*) malloc(strlen(app->base_dir) + 30);
     sprintf(path, "%sdebug_chatlog%i.txt", app->base_dir, file_i);
     FILE* file = fopen(path, "r");

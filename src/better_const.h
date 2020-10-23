@@ -21,6 +21,15 @@ enum : u8
     BETS_STATUS_CLOSED
 };
 
+enum : UINT_PTR
+{
+    TID_SPOOF_MESSAGES,
+    TID_ALLOW_AUTO_RECONNECT,
+    TID_PRIVMSG_READY,
+};
+
+const i32 MIN_FRAMES_BEFORE_WAIT = 3;
+
 const i32 WINDOW_MIN_X = 400;
 const i32 WINDOW_MIN_Y = 350;
 
@@ -51,9 +60,10 @@ const i32 CHAT_PARAM_MAX = 50;
 const i32 POINTS_NAME_MAX = 30;
 const i32 OPTION_NAME_MAX = 20;
 
-const f32 PRIVMSG_MIN_INTERVAL = 30.0f / 20.0f + 0.1f;
-const f32 PRIVMSG_MIN_INTERVAL_AS_MOD = 30.0f / 100.0f + 0.1f;
-const f32 MIN_RECONNECT_INTERVAL = 15.0f;
+// NOTE: These timevalues are in milliseconds (used with SetTimer)
+const u32 PRIVMSG_MIN_INTERVAL = (u32)(30000.0 / 20.0 + 0.1);
+const u32 PRIVMSG_MIN_INTERVAL_AS_MOD = (u32)(30000.0 / 100.0 + 0.1);
+const u32 MIN_RECONNECT_INTERVAL = 15000;
 
 const ImVec4 TEXT_COLOR_WARN = ImVec4(1.0f, 0.8f, 0.4f, 1.0f);
 

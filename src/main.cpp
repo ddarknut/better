@@ -31,6 +31,7 @@
 #include "better_imgui_utils.h"
 
 #if BETTER_DEBUG
+extern i32 spoof_message_file_index;
 extern f32 spoof_interval;
 extern i32 spoof_chunk_size;
 #endif
@@ -84,7 +85,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
     QueryPerformanceFrequency(&qpc_frequency);
     LARGE_INTEGER qpc_ticks;
     QueryPerformanceCounter(&qpc_ticks);
-    app.now = (f64)qpc_ticks.QuadPart / (f64)qpc_frequency.QuadPart;
+    f64 now = (f64)qpc_ticks.QuadPart / (f64)qpc_frequency.QuadPart;
 
     if (!irc_init(&app)) return 1;
 
@@ -185,27 +186,30 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
     if (app.settings.auto_connect)
         irc_connect(&app);
 
+    i32 consecutive_frames_without_messages = 0;
     MSG msg;
     ZeroMemory(&msg, sizeof(msg));
-    while (msg.message != WM_QUIT)
+    while (true)
     {
-        if (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
+        if (consecutive_frames_without_messages > MIN_FRAMES_BEFORE_WAIT &&
+            !imgui_any_mouse_buttons_held(io) &&
+            bets_status(&app) == BETS_STATUS_CLOSED)
+            WaitMessage();
+        else ++consecutive_frames_without_messages;
+
+        while (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
         {
             ::TranslateMessage(&msg);
             ::DispatchMessage(&msg);
-            continue;
+            consecutive_frames_without_messages = 0;
+            if (msg.message == WM_QUIT) break;
         }
+        if (msg.message == WM_QUIT) break;
 
-        #if BETTER_DEBUG
-        static i32 read_spoof_messages = -1;
-        if (read_spoof_messages >= 0)
-            maybe_read_spoof_messages(&app, read_spoof_messages);
-        #endif
-
-        f64 last_frame_time = app.now;
+        f64 last_frame_time = now;
         QueryPerformanceCounter(&qpc_ticks);
-        app.now = (f64)qpc_ticks.QuadPart / (f64)qpc_frequency.QuadPart;
-        f64 dt = app.now - last_frame_time;
+        now = (f64)qpc_ticks.QuadPart / (f64)qpc_frequency.QuadPart;
+        f64 dt = now - last_frame_time;
 
         // Handle new messages
         for (auto it = app.read_queue.begin();
@@ -240,7 +244,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
         // Check point feedback queue
         // NOTE: If someone spams the !points command, there was a problem where privmsg_queue would fill up with a bunch of messages for that person, and the bot would keep dishing them out long after the person stopped spamming the command. We do a couple things here to minimize that problem: we check that privmsg_queue is empty, and that we are ready to send a new privmsg is so that there is less time between a user being removed from point_feedback_queue to them actually getting the message. Also, we don't go through all of point_feedback_queue -- only enough to create one PRIVMSG.
         // TODO: We can probably eliminate this problem entirely if we just move this to irc_on_write and send messages directly instead of via irc_queue_write.
-        if (app.now - app.last_privmsg_time > get_privmsg_interval(&app) &&
+        if (app.privmsg_ready &&
             !app.point_feedback_queue.empty() &&
             app.privmsg_queue.empty())
         {
@@ -445,10 +449,26 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
         {
             if (ImGui::Begin("Debug", &app.settings.show_window_debug))
             {
-                ImGui::Text("%.5f (%.1f)", dt, 1./dt);
+                {
+                    static char t[9] = "_.-*^*-.";
+                    char temp = t[0];
+                    memcpy(&t[0], &t[1], 7);
+                    t[7] = temp;
+                    ImGui::Text("%s%s%s%s%s%s%s%s", t, t, t, t, t, t, t, t);
+                }
                 ImGui::Checkbox("Show demo window", &show_demo_window);
-                ImGui::InputInt("Read spoof messages", &read_spoof_messages);
-                ImGui::InputFloat("Spoof message interval", &spoof_interval);
+                if (ImGui::InputInt("Spoof file index", &spoof_message_file_index))
+                {
+                    if (spoof_message_file_index >= 0)
+                        start_reading_spoof_messages(&app);
+                    else
+                        stop_reading_spoof_messages(&app);
+                }
+                if (ImGui::InputFloat("Spoof message interval", &spoof_interval))
+                {
+                    if (spoof_message_file_index >= 0)
+                        start_reading_spoof_messages(&app);
+                }
                 ImGui::InputInt("Spoof message chunk", &spoof_chunk_size);
                 const i32 num_pers = 1234;
                 if (ImGui::Button("Fill leaderboard"))
@@ -1426,6 +1446,33 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             mminfo->ptMinTrackSize.y = WINDOW_MIN_Y;
             return 0;
         }
+        case WM_TIMER:
+        {
+            switch ((UINT_PTR)wParam)
+            {
+                case TID_SPOOF_MESSAGES: {
+                    #if BETTER_DEBUG
+                    read_spoof_messages(&app);
+                    #endif
+                    return 0;
+                }
+
+                case TID_ALLOW_AUTO_RECONNECT: {
+                    app.allow_auto_reconnect = true;
+                    KillTimer(app.main_wnd, TID_ALLOW_AUTO_RECONNECT);
+                    return 0;
+                }
+
+                case TID_PRIVMSG_READY: {
+                    app.privmsg_ready = true;
+                    SetTimer(app.main_wnd,
+                             TID_PRIVMSG_READY,
+                             get_privmsg_interval(&app),
+                             NULL);
+                    return 0;
+                }
+            }
+        } break;
         case BETTER_WM_DNS_COMPLETE:
             irc_on_dns_complete((App*)wParam, (addrinfo*)lParam);
             return 0;

@@ -6,6 +6,7 @@
 
 #include "better_types.h"
 
+bool imgui_any_mouse_buttons_held(ImGuiIO& io);
 bool imgui_confirmable_button(char* button_text, ImVec2& button_size, bool skip_confirm=false);
 void imgui_tooltip(const char* content);
 void imgui_extra(const char* content);

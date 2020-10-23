@@ -54,10 +54,9 @@ struct App
     bool chat_auto_scroll = true;
     bool chat_connected = true;
 
-    f64 now;
     f32 timer_left = -INFINITY;
-    f32 last_privmsg_time = 0.0f;
-    f32 last_connect_attempt = 0.0f;
+    bool privmsg_ready = false;
+    bool allow_auto_reconnect = true;
 
     bool should_focus_log_window = false;
     i32 unread_error = -1;
