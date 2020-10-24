@@ -1,13 +1,17 @@
 @echo off
 
-echo Building...
+if [%1] == [release] (
+    echo Building for release...
+) else (
+    echo Building for debug...
+)
 
 if exist build\ rmdir /S /Q build\
 mkdir build\
 
 where /Q cl
 if errorlevel 1 (
-    call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
+    call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
 )
 
 setlocal
@@ -19,10 +23,12 @@ set CommonCFlags=/nologo /MP /std:c++17 /W3 /Febuild\better.exe /Fobuild\ /Fdbui
     /Ilib\imgui\examples ^
     /Ilib\implot
 set CommonLFlags=build\better.res d3d11.lib ws2_32.lib crypt32.lib
-set DebugCFlags=/MDd /Zi /D BETTER_DEBUG=1
-set DebugLFlags=
-set ReleaseCFlags=/MD /O2 /D NDEBUG /D BETTER_DEBUG=0
-set ReleaseLFlags=
+
+if [%1] == [release] (
+    set TargetCFlags=/MD /O2 /D NDEBUG /D BETTER_DEBUG=0
+) else (
+    set TargetCFlags=/MDd /Zi /D BETTER_DEBUG=1
+)
 
 rc /nologo /fobuild\better.res resources\better.rc
 if errorlevel 1 (
@@ -35,14 +41,13 @@ if errorlevel 1 (
        lib\imgui\examples\imgui_impl_dx11.cpp ^
        lib\imgui\examples\imgui_impl_win32.cpp ^
        lib\implot\*.cpp ^
-       %CommonCFlags% %DebugCFlags% ^
-       /link %CommonLFlags% %DebugLFlags%
+       %CommonCFlags% %TargetCFlags% ^
+       /link %CommonLFlags%
 
     if errorlevel 1 (
         echo Build failed.
     ) else (
         xcopy /Q /Y data build\
-        xcopy /Q /Y lib build\
         echo Build successful.
     )
 )
