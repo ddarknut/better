@@ -21,7 +21,8 @@ set CommonCFlags=/nologo /MP /std:c++17 /W3 /Febuild\better.exe /Fobuild\ /Fdbui
     /Isrc ^
     /Ilib\imgui ^
     /Ilib\imgui\examples ^
-    /Ilib\implot
+    /Ilib\implot ^
+    /Ilib\binn\src
 set CommonLFlags=build\better.res d3d11.lib ws2_32.lib crypt32.lib
 
 if [%1] == [release] (
@@ -36,7 +37,7 @@ if errorlevel 1 (
 ) else (
     echo Resource compilation successful.
 
-    cl src\*.cpp ^
+    cl src\*.cpp src\*.c ^
        lib\imgui\*.cpp ^
        lib\imgui\examples\imgui_impl_dx11.cpp ^
        lib\imgui\examples\imgui_impl_win32.cpp ^

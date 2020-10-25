@@ -4,3 +4,6 @@
 [submodule "implot"]
 	path = lib/implot
 	url = https://github.com/ddarknut/implot.git
+[submodule "binn"]
+	path = lib/binn
+	url = https://github.com/liteserver/binn.git
