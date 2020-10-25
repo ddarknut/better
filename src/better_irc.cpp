@@ -53,7 +53,7 @@ bool irc_init(App* app)
     i32 res = WSAStartup(MAKEWORD(2,2), &app->wsa_data);
     if (res != 0)
     {
-        add_log(app, LOGLEVEL_ERROR, "WSAStartup failed: %i", res);
+        add_log(app, LOGLEVEL_DEVERROR, "WSAStartup failed: %i", res);
         abort();
     }
 
@@ -76,19 +76,19 @@ bool irc_connect(App* app)
 {
     if (app->settings.channel[0] == '\0')
     {
-        add_log(app, LOGLEVEL_ERROR, "Cannot start connection: Channel name is empty.");
+        add_log(app, LOGLEVEL_USERERROR, "Cannot start connection: Channel name is empty.");
         return false;
     }
 
     if (app->settings.username[0] != '\0' && !app->settings.oauth_token_is_present)
     {
-        add_log(app, LOGLEVEL_ERROR, "Cannot start connection: OAuth token is empty, but username is not.");
+        add_log(app, LOGLEVEL_USERERROR, "Cannot start connection: OAuth token is empty, but username is not.");
         return false;
     }
 
     if (dns_thread_running(app))
     {
-        add_log(app, LOGLEVEL_ERROR, "Cannot start connection: DNS thread is still running.");
+        add_log(app, LOGLEVEL_USERERROR, "Cannot start connection: DNS thread is still running.");
         return false;
     }
 
@@ -102,7 +102,7 @@ bool irc_connect(App* app)
                                        &app->dns_req_thread_id);
     if (!app->dns_req_thread)
     {
-        add_log(app, LOGLEVEL_ERROR, "CreateThread failed: %d", GetLastError());
+        add_log(app, LOGLEVEL_DEVERROR, "CreateThread failed: %d", GetLastError());
         abort();
     }
 
@@ -122,7 +122,7 @@ void irc_disconnect(App* app)
 void irc_schedule_reconnect(App* app)
 {
     if (!SetTimer(app->main_wnd, TID_ALLOW_AUTO_RECONNECT, (UINT)MIN_RECONNECT_INTERVAL, NULL))
-        add_log(app, LOGLEVEL_ERROR, "SetTimer failed: %d", GetLastError());
+        add_log(app, LOGLEVEL_DEVERROR, "SetTimer failed: %d", GetLastError());
 }
 
 void irc_timed_reconnect(App* app)
@@ -149,7 +149,7 @@ bool dns_thread_running(App* app)
     DWORD exit_code;
     if (!GetExitCodeThread(app->dns_req_thread, &exit_code))
     {
-        add_log(app, LOGLEVEL_ERROR, "GetExitCodeThread failed: %d", GetLastError());
+        add_log(app, LOGLEVEL_DEVERROR, "GetExitCodeThread failed: %d", GetLastError());
         abort();
     }
 
@@ -158,7 +158,7 @@ bool dns_thread_running(App* app)
 
     if (exit_code != 0)
     {
-        add_log(app, LOGLEVEL_ERROR, "DNS thread failed with exit code: %d", exit_code);
+        add_log(app, LOGLEVEL_DEVERROR, "DNS thread failed with exit code: %d", exit_code);
         abort();
     }
 
@@ -178,13 +178,13 @@ void irc_on_dns_complete(App* app, addrinfo* result)
 
     if (app->sock == INVALID_SOCKET)
     {
-        add_log(app, LOGLEVEL_ERROR, "Failed to create socket: %ld", WSAGetLastError());
+        add_log(app, LOGLEVEL_DEVERROR, "Failed to create socket: %ld", WSAGetLastError());
         abort();
     }
 
     app->allow_auto_reconnect = false;
     if (!SetTimer(app->main_wnd, TID_ALLOW_AUTO_RECONNECT, MIN_RECONNECT_INTERVAL, NULL))
-        add_log(app, LOGLEVEL_ERROR, "SetTimer failed: %d", GetLastError());
+        add_log(app, LOGLEVEL_DEVERROR, "SetTimer failed: %d", GetLastError());
 
     i32 res = WSAAsyncSelect(app->sock,
                              app->main_wnd,
@@ -198,7 +198,7 @@ void irc_on_dns_complete(App* app, addrinfo* result)
         i32 err = WSAGetLastError();
         if (err != WSAEWOULDBLOCK)
         {
-            add_log(app, LOGLEVEL_ERROR, "connect failed: %i", err);
+            add_log(app, LOGLEVEL_DEVERROR, "connect failed: %i", err);
             abort();
         }
     }
@@ -207,14 +207,14 @@ void irc_on_dns_complete(App* app, addrinfo* result)
 
 void irc_on_dns_failed(App* app, DWORD getaddrinfo_error)
 {
-    add_log(app, LOGLEVEL_ERROR, "DNS request failed. Are you connected to the internet? (getaddrinfo returned %d)", getaddrinfo_error);
+    add_log(app, LOGLEVEL_USERERROR, "DNS request failed. Are you connected to the internet? (getaddrinfo returned %d)", getaddrinfo_error);
 }
 
 void irc_on_connect(App* app)
 {
     if (app->sock == INVALID_SOCKET)
     {
-        add_log(app, LOGLEVEL_ERROR, "Unable to connect to Twitch.");
+        add_log(app, LOGLEVEL_DEVERROR, "Unable to connect to Twitch.");
         return;
     }
 
@@ -225,7 +225,7 @@ void irc_on_connect(App* app)
     // freeaddrinfo(result);
 
     if (!SetTimer(app->main_wnd, TID_PRIVMSG_READY, get_privmsg_interval(app), NULL))
-        add_log(app, LOGLEVEL_ERROR, "SetTimer failed: %d", GetLastError());
+        add_log(app, LOGLEVEL_DEVERROR, "SetTimer failed: %d", GetLastError());
 
     char* sendbuf = (char*) malloc(SEND_BUFLEN+1);
 
@@ -233,7 +233,7 @@ void irc_on_connect(App* app)
     {
         if (!app->settings.oauth_token_is_present)
         {
-            add_log(app, LOGLEVEL_ERROR, "Can't log in: OAuth token is empty.");
+            add_log(app, LOGLEVEL_USERERROR, "Can't log in: OAuth token is empty.");
             free(sendbuf);
             irc_disconnect(app);
         }
@@ -241,7 +241,7 @@ void irc_on_connect(App* app)
         {
             if (!CryptUnprotectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
             {
-                add_log(app, LOGLEVEL_ERROR, "CryptUnprotectMemory failed: %i", GetLastError());
+                add_log(app, LOGLEVEL_DEVERROR, "CryptUnprotectMemory failed: %i", GetLastError());
                 SecureZeroMemory(app->settings.token, sizeof(app->settings.token));
                 app->settings.oauth_token_is_present = false;
                 return;
@@ -249,7 +249,7 @@ void irc_on_connect(App* app)
             sprintf(sendbuf, "PASS %s\r\nNICK %s\r\n", app->settings.token, app->settings.username);
             if (!CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
             {
-                add_log(app, LOGLEVEL_ERROR, "CryptProtectMemory failed: %i", GetLastError());
+                add_log(app, LOGLEVEL_DEVERROR, "CryptProtectMemory failed: %i", GetLastError());
                 SecureZeroMemory(app->settings.token, sizeof(app->settings.token));
                 app->settings.oauth_token_is_present = false;
                 return;
@@ -276,7 +276,7 @@ void irc_send_buffer(App* app, char* buf)
         i32 err = WSAGetLastError();
         if (err != WSAEWOULDBLOCK)
         {
-            add_log(app, LOGLEVEL_ERROR, "Lost connection to Twitch. (send returned %i)", WSAGetLastError());
+            add_log(app, LOGLEVEL_DEVERROR, "Lost connection to Twitch. (send returned %i)", WSAGetLastError());
             irc_timed_reconnect(app);
         }
     }
@@ -311,7 +311,7 @@ void irc_on_write(App* app)
 
         app->privmsg_ready = false;
         if (!SetTimer(app->main_wnd, TID_PRIVMSG_READY, get_privmsg_interval(app), NULL))
-            add_log(app, LOGLEVEL_ERROR, "SetTimer failed: %d", GetLastError());
+            add_log(app, LOGLEVEL_DEVERROR, "SetTimer failed: %d", GetLastError());
 
         char* buf = app->privmsg_queue.front();
         irc_send_buffer(app, buf);
@@ -460,7 +460,7 @@ void irc_on_read_or_close(App* app)
                 // So apparently twitch doesn't respect RFC1459's 512-byte limit -- they only guarantee that a message is no more than 512 *UNICODE CODEPOINTS*. Meaning messages can be as long as 2048 bytes. See: https://discuss.dev.twitch.tv/t/message-character-limit/7793/5
                 // I've increased the buffer size, but I should probably do some testing and make sure the netcode can handle long strings of multibyte characters. I should probably also put in a safety check in front of the strcpy.
 
-                add_log(app, LOGLEVEL_ERROR, "Lost connection to Twitch. (recv failed %i)", err);
+                add_log(app, LOGLEVEL_DEVERROR, "Lost connection to Twitch. (recv failed %i)", err);
                 irc_timed_reconnect(app);
             }
             break;

@@ -263,7 +263,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 auto it_points = app.points.find(*it);
                 if (it_points == app.points.end())
                 {
-                    add_log(&app, LOGLEVEL_ERROR, "Feedback queue contained a username that was not found on the leaderboard.");
+                    add_log(&app, LOGLEVEL_DEVERROR, "Feedback queue contained a username that was not found on the leaderboard.");
                     last_used = it;
                     continue;
                 }
@@ -389,7 +389,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                     if (app.unread_error != -1)
                     {
                         ImGui::SameLine();
-                        ImGui::TextColored(LOG_TEXT_COLORS[LOGLEVEL_ERROR], "Log contains new errors.");
+                        ImGui::TextColored(LOG_TEXT_COLORS[LOGLEVEL_USERERROR], "Log contains new errors.");
                         if (ImGui::IsItemClicked())
                         {
                             app.settings.show_window_log = true;
@@ -949,11 +949,12 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 #endif
                 ImGui::Checkbox("Info",     &app.log_filter[LOGLEVEL_INFO]); ImGui::SameLine();
                 ImGui::Checkbox("Warnings", &app.log_filter[LOGLEVEL_WARN]); ImGui::SameLine();
-                ImGui::Checkbox("Errors",   &app.log_filter[LOGLEVEL_ERROR]);
-                if (!app.log_filter[LOGLEVEL_ERROR] && app.unread_error != -1)
+                if (ImGui::Checkbox("Errors",   &app.log_filter[LOGLEVEL_USERERROR]))
+                    app.log_filter[LOGLEVEL_DEVERROR] = app.log_filter[LOGLEVEL_USERERROR];
+                if (!app.log_filter[LOGLEVEL_USERERROR] && app.unread_error != -1)
                 {
                     ImGui::SameLine();
-                    ImGui::TextColored(LOG_TEXT_COLORS[LOGLEVEL_ERROR], "*");
+                    ImGui::TextColored(LOG_TEXT_COLORS[LOGLEVEL_USERERROR], "*");
                 }
                 ImGui::PopStyleVar();
 
@@ -1007,7 +1008,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                         ImGui::SameLine();
                     if (ImGui::Button("Go to last error"))
                     {
-                        app.log_filter[LOGLEVEL_ERROR] = true;
+                        app.log_filter[LOGLEVEL_USERERROR] = true;
                         goto_error = true;
                     }
                 }
@@ -1113,16 +1114,14 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                         HANDLE clip_handle = GetClipboardData(CF_TEXT);
                         if (clip_handle == NULL)
                         {
-                            add_log(&app, LOGLEVEL_ERROR, "GetClipboardData failed: %d", GetLastError());
-                            abort();
+                            add_log(&app, LOGLEVEL_DEVERROR, "GetClipboardData failed: %d", GetLastError());
                         }
                         else
                         {
                             char* clip_data = (char*) GlobalLock(clip_handle);
                             if (clip_data == NULL)
                             {
-                                add_log(&app, LOGLEVEL_ERROR, "GlobalLock failed when getting clipboard data: %d", GetLastError());
-                                abort();
+                                add_log(&app, LOGLEVEL_DEVERROR, "GlobalLock failed: %d", GetLastError());
                             }
                             else
                             {
@@ -1130,16 +1129,16 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                                 GlobalUnlock(clip_handle);
                                 if(strncmp(app.settings.token, "oauth:", 6) != 0)
                                 {
-                                    add_log(&app, LOGLEVEL_ERROR, "Pasted token has an incorrect format. Make sure it starts with \"oauth:\".");
+                                    add_log(&app, LOGLEVEL_USERERROR, "Pasted token has an incorrect format. Make sure it starts with \"oauth:\".");
                                     SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
                                     app.settings.oauth_token_is_present = false;
                                 }
                                 else
                                 {
-                                    if (!EmptyClipboard()) add_log(&app, LOGLEVEL_ERROR, "EmptyClipboard failed: %d", GetLastError());
+                                    if (!EmptyClipboard()) add_log(&app, LOGLEVEL_DEVERROR, "EmptyClipboard failed: %d", GetLastError());
                                     if (!CryptProtectMemory(app.settings.token, sizeof(app.settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
                                     {
-                                        add_log(&app, LOGLEVEL_ERROR, "CryptProtectMemory failed: %i", GetLastError());
+                                        add_log(&app, LOGLEVEL_DEVERROR, "CryptProtectMemory failed: %i", GetLastError());
                                         SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
                                         app.settings.oauth_token_is_present = false;
                                     }
@@ -1464,14 +1463,14 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 case TID_ALLOW_AUTO_RECONNECT: {
                     app.allow_auto_reconnect = true;
                     if (!KillTimer(app.main_wnd, TID_ALLOW_AUTO_RECONNECT))
-                        add_log(&app, LOGLEVEL_ERROR, "KillTimer failed: %d", GetLastError());
+                        add_log(&app, LOGLEVEL_DEVERROR, "KillTimer failed: %d", GetLastError());
                     return 0;
                 }
 
                 case TID_PRIVMSG_READY: {
                     app.privmsg_ready = true;
                     if (!KillTimer(app.main_wnd, TID_PRIVMSG_READY))
-                        add_log(&app, LOGLEVEL_ERROR, "KillTimer failed: %d", GetLastError());
+                        add_log(&app, LOGLEVEL_DEVERROR, "KillTimer failed: %d", GetLastError());
                     return 0;
                 }
             }
@@ -1491,7 +1490,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 case FD_CONNECT:
                     if (err != 0)
-                        add_log(&app, LOGLEVEL_ERROR, "Failed to connect socket: %i\n", err);
+                        add_log(&app, LOGLEVEL_DEVERROR, "Failed to connect socket: %i\n", err);
                     else
                         irc_on_connect(&app);
                     break;

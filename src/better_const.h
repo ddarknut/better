@@ -10,7 +10,8 @@ enum : u8
     LOGLEVEL_DEBUG,
     LOGLEVEL_INFO,
     LOGLEVEL_WARN,
-    LOGLEVEL_ERROR,
+    LOGLEVEL_USERERROR,
+    LOGLEVEL_DEVERROR,
     LOGLEVEL_ENUM_SIZE
 };
 
@@ -72,15 +73,17 @@ const ImVec4 LOG_TEXT_COLORS[LOGLEVEL_ENUM_SIZE] =
     ImVec4(0.8f, 0.8f, 0.8f, 1),
     ImVec4(1   , 1   , 1   , 1),
     TEXT_COLOR_WARN,
-    ImVec4(1   , 0.2f, 0.2f, 1)
+    ImVec4(1   , 0.2f, 0.2f, 1),
+    ImVec4(1   , 0.2f, 0.2f, 1),
 };
 
 const char *const LOG_LEVEL_ID_STR[LOGLEVEL_ENUM_SIZE] =
 {
-    "dbg",
-    "inf",
-    "wrn",
-    "err"
+    "dbug",
+    "info",
+    "warn",
+    "uerr",
+    "derr",
 };
 
 static_assert(POINTS_NAME_MAX < CHAT_COMMAND_MAX);

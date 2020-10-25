@@ -66,6 +66,7 @@ struct App
         true,
         true,
         true,
+        true,
     };
 
     Settings settings;

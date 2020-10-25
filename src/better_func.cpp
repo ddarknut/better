@@ -12,7 +12,7 @@ void make_lower(char* s)
     for(; *s; ++s) *s = tolower(*s);
 }
 
-void add_log(App* app, u8 log_level, const char* const fmt ...)
+void _add_log(App* app, const u8 log_level, const char* src_file, const i32 src_line, const char* const fmt ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -34,7 +34,7 @@ void add_log(App* app, u8 log_level, const char* const fmt ...)
     char* path = (char*) malloc(strlen(app->base_dir) + 30);
     sprintf(path, "%slog_%.4hu-%.2hu-%.2hu.txt", app->base_dir, timestamp.wYear, timestamp.wMonth, timestamp.wDay);
     FILE* file = fopen(path, "a");
-    fprintf(file, "%.2hu:%.2hu:%.2hu.%.3hu [%s] %s\n", timestamp.wHour, timestamp.wMinute, timestamp.wSecond, timestamp.wMilliseconds, LOG_LEVEL_ID_STR[log_level], buffer);
+    fprintf(file, "%.2hu:%.2hu:%.2hu.%.3hu [%s] %s (%s:%i)\n", timestamp.wHour, timestamp.wMinute, timestamp.wSecond, timestamp.wMilliseconds, LOG_LEVEL_ID_STR[log_level], buffer, src_file, src_line);
     free(path);
     fclose(file);
 
@@ -54,7 +54,7 @@ void add_log(App* app, u8 log_level, const char* const fmt ...)
         app->log_buffer[pos].level = log_level;
         app->log_buffer[pos].content = buffer;
 
-        if (log_level == LOGLEVEL_ERROR)
+        if (log_level >= LOGLEVEL_USERERROR)
             app->unread_error = pos;
     }
     else
@@ -102,7 +102,7 @@ void load_settings_from_disk(App* app)
             auto res = CryptUnprotectData(&data_in, NULL, NULL, NULL, NULL, 0, &data_out);
             if (!res)
             {
-                add_log(app, LOGLEVEL_ERROR, "Failed to decrypt saved settings (%d). Did Windows user credentials change?", GetLastError());
+                add_log(app, LOGLEVEL_DEVERROR, "Failed to decrypt saved settings (%d). Did Windows user credentials change?", GetLastError());
             }
             else
             {
@@ -114,7 +114,7 @@ void load_settings_from_disk(App* app)
                 {
                     if (!CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
                     {
-                        add_log(app, LOGLEVEL_ERROR, "CryptProtectMemory failed: %d", GetLastError());
+                        add_log(app, LOGLEVEL_DEVERROR, "CryptProtectMemory failed: %d", GetLastError());
                     }
                     SecureZeroMemory(data_out.pbData, data_out.cbData);
                     app->settings.oauth_token_is_present = false;
@@ -137,7 +137,7 @@ void save_settings_to_disk(App* app)
     free(path);
 
     if (!file)
-        add_log(app, LOGLEVEL_ERROR, "Couldn't open settings file for writing.");
+        add_log(app, LOGLEVEL_DEVERROR, "Couldn't open settings file for writing.");
     else
     {
         DATA_BLOB data_in, data_out;
@@ -152,13 +152,13 @@ void save_settings_to_disk(App* app)
                                       sizeof(app->settings.token),
                                       CRYPTPROTECTMEMORY_SAME_PROCESS))
             {
-                add_log(app, LOGLEVEL_ERROR, "CryptUnprotectMemory failed: %i", GetLastError());
+                add_log(app, LOGLEVEL_DEVERROR, "CryptUnprotectMemory failed: %i", GetLastError());
                 SecureZeroMemory(app->settings.token, sizeof(app->settings.token));
                 app->settings.oauth_token_is_present = false;
             }
         }
         if (!CryptProtectData(&data_in, L"Twitch OAuth token for Better", NULL, NULL, NULL, 0, &data_out))
-            add_log(app, LOGLEVEL_ERROR, "Failed to encrypt token: %i", GetLastError());
+            add_log(app, LOGLEVEL_DEVERROR, "Failed to encrypt token: %i", GetLastError());
         else
         {
             if (app->settings.oauth_token_is_present)
@@ -167,7 +167,7 @@ void save_settings_to_disk(App* app)
                                         sizeof(app->settings.token),
                                         CRYPTPROTECTMEMORY_SAME_PROCESS))
                 {
-                    add_log(app, LOGLEVEL_ERROR, "CryptProtectMemory failed: %i", GetLastError());
+                    add_log(app, LOGLEVEL_DEVERROR, "CryptProtectMemory failed: %i", GetLastError());
                     SecureZeroMemory(app->settings.token, sizeof(app->settings.token));
                     app->settings.oauth_token_is_present = false;
                 }
@@ -256,13 +256,13 @@ static i32 last_read_pos[2] = {};
 void start_reading_spoof_messages(App* app)
 {
     if (!SetTimer(app->main_wnd, TID_SPOOF_MESSAGES, (UINT)(spoof_interval*1000.0f), NULL))
-        add_log(app, LOGLEVEL_ERROR, "SetTimer failed: %d", GetLastError());
+        add_log(app, LOGLEVEL_DEVERROR, "SetTimer failed: %d", GetLastError());
 }
 
 void stop_reading_spoof_messages(App* app)
 {
     if (!KillTimer(app->main_wnd, TID_SPOOF_MESSAGES))
-        add_log(app, LOGLEVEL_ERROR, "KillTimer failed: %d", GetLastError());
+        add_log(app, LOGLEVEL_DEVERROR, "KillTimer failed: %d", GetLastError());
 }
 
 void read_spoof_messages(App* app)
