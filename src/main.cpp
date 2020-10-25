@@ -1132,6 +1132,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                                 {
                                     add_log(&app, LOGLEVEL_ERROR, "Pasted token has an incorrect format. Make sure it starts with \"oauth:\".");
                                     SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
+                                    app.settings.oauth_token_is_present = false;
                                 }
                                 else
                                 {
@@ -1139,7 +1140,10 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                                     if (!CryptProtectMemory(app.settings.token, sizeof(app.settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
                                     {
                                         add_log(&app, LOGLEVEL_ERROR, "CryptProtectMemory failed: %i", GetLastError());
+                                        SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
+                                        app.settings.oauth_token_is_present = false;
                                     }
+                                    else app.settings.oauth_token_is_present = true;
                                 }
                             }
                         }

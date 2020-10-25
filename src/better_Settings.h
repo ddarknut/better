@@ -4,7 +4,7 @@
 #include "better_types.h"
 #include "better_const.h"
 
-const u32 SETTINGS_VERSION = 3;
+const u32 SETTINGS_VERSION = 4;
 
 struct Settings
 {
@@ -22,6 +22,7 @@ struct Settings
     bool auto_connect = false;
     char channel[CHANNEL_NAME_MAX] = "";
     char username[USERNAME_MAX] = "";
+    bool oauth_token_is_present = false;
     char token[TOKEN_MAX] = "";
     bool is_mod = false;
 

@@ -71,7 +71,11 @@ void load_settings_from_disk(App* app)
     sprintf(path, "%ssettings", app->base_dir);
     FILE* file = fopen(path, "rb");
 
-    if (file)
+    free(path);
+
+    if (!file)
+        add_log(app, LOGLEVEL_DEBUG, "No settings file found.");
+    else
     {
         add_log(app, LOGLEVEL_DEBUG, "Reading settings from disk.");
 
@@ -106,13 +110,14 @@ void load_settings_from_disk(App* app)
 
                 memcpy(&app->settings, data_out.pbData, data_out.cbData);
 
-                if (app->settings.token[0] != '\0')
+                if (app->settings.oauth_token_is_present)
                 {
                     if (!CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
                     {
                         add_log(app, LOGLEVEL_ERROR, "CryptProtectMemory failed: %d", GetLastError());
                     }
                     SecureZeroMemory(data_out.pbData, data_out.cbData);
+                    app->settings.oauth_token_is_present = false;
                 }
             }
 
@@ -120,71 +125,74 @@ void load_settings_from_disk(App* app)
             free(data_in.pbData);
         }
     }
-    else add_log(app, LOGLEVEL_DEBUG, "No settings file found.");
-
-    free(path);
 }
 
 void save_settings_to_disk(App* app)
 {
     add_log(app, LOGLEVEL_DEBUG, "Saving settings to disk.");
 
-    DATA_BLOB data_in, data_out;
-    data_in.cbData = sizeof(app->settings);
-    data_in.pbData = (BYTE*) &app->settings;
+    char* path = (char*) malloc(strlen(app->base_dir) + 15);
+    sprintf(path, "%ssettings", app->base_dir);
+    FILE* file = fopen(path, "wb");
+    free(path);
 
-    bool has_token = app->settings.token[0] != '\0';
-    if (has_token)
-    {
-        if (!CryptUnprotectMemory(app->settings.token,
-                                  sizeof(app->settings.token),
-                                  CRYPTPROTECTMEMORY_SAME_PROCESS))
-        {
-            add_log(app, LOGLEVEL_ERROR, "CryptUnprotectMemory failed: %i", GetLastError());
-            return;
-        }
-    }
-    auto res = CryptProtectData(&data_in, L"User settings for Better", NULL, NULL, NULL, 0, &data_out);
-    if (has_token)
-    {
-        if (!CryptProtectMemory(app->settings.token,
-                                sizeof(app->settings.token),
-                                CRYPTPROTECTMEMORY_SAME_PROCESS))
-        {
-            add_log(app, LOGLEVEL_ERROR, "CryptProtectMemory failed: %i", GetLastError());
-            return;
-        }
-    }
-
-    if (!res)
-    {
-        add_log(app, LOGLEVEL_ERROR, "Failed to encrypt settings: %i", GetLastError());
-    }
+    if (!file)
+        add_log(app, LOGLEVEL_ERROR, "Couldn't open settings file for writing.");
     else
     {
-        char* path = (char*) malloc(strlen(app->base_dir) + 15);
-        sprintf(path, "%ssettings", app->base_dir);
-        FILE* file = fopen(path, "wb");
-        assert(file);
+        DATA_BLOB data_in, data_out;
+        data_in.cbData = sizeof(app->settings);
+        data_in.pbData = (BYTE*) &app->settings;
 
         fwrite(&SETTINGS_VERSION, sizeof(u32), 1, file);
-        fwrite(data_out.pbData, data_out.cbData, 1, file);
 
-        free(path);
+        if (app->settings.oauth_token_is_present)
+        {
+            if (!CryptUnprotectMemory(app->settings.token,
+                                      sizeof(app->settings.token),
+                                      CRYPTPROTECTMEMORY_SAME_PROCESS))
+            {
+                add_log(app, LOGLEVEL_ERROR, "CryptUnprotectMemory failed: %i", GetLastError());
+                SecureZeroMemory(app->settings.token, sizeof(app->settings.token));
+                app->settings.oauth_token_is_present = false;
+            }
+        }
+        if (!CryptProtectData(&data_in, L"Twitch OAuth token for Better", NULL, NULL, NULL, 0, &data_out))
+            add_log(app, LOGLEVEL_ERROR, "Failed to encrypt token: %i", GetLastError());
+        else
+        {
+            if (app->settings.oauth_token_is_present)
+            {
+                if (!CryptProtectMemory(app->settings.token,
+                                        sizeof(app->settings.token),
+                                        CRYPTPROTECTMEMORY_SAME_PROCESS))
+                {
+                    add_log(app, LOGLEVEL_ERROR, "CryptProtectMemory failed: %i", GetLastError());
+                    SecureZeroMemory(app->settings.token, sizeof(app->settings.token));
+                    app->settings.oauth_token_is_present = false;
+                }
+            }
+
+            fwrite(data_out.pbData, data_out.cbData, 1, file);
+        }
+
         fclose(file);
     }
 }
 
 void load_leaderboard_from_disk(App* app)
 {
-    add_log(app, LOGLEVEL_DEBUG, "Reading leaderboard from disk.");
-
     char* path = (char*) malloc(strlen(app->base_dir) + 20);
     sprintf(path, "%sleaderboard.txt", app->base_dir);
     FILE* file = fopen(path, "r");
+    free(path);
 
-    if (file)
+    if (!file)
+        add_log(app, LOGLEVEL_DEBUG, "No leaderboard file found.");
+    else
     {
+        add_log(app, LOGLEVEL_DEBUG, "Reading leaderboard from disk.");
+
         while (true)
         {
             char name[USERNAME_MAX];
@@ -207,9 +215,7 @@ void load_leaderboard_from_disk(App* app)
                   });
 
     }
-    else add_log(app, LOGLEVEL_DEBUG, "No leaderboard file found.");
 
-    free(path);
 }
 
 void save_leaderboard_to_disk(App* app)

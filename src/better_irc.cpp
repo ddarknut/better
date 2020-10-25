@@ -80,7 +80,7 @@ bool irc_connect(App* app)
         return false;
     }
 
-    if (app->settings.username[0] != '\0' && app->settings.token[0] == '\0')
+    if (app->settings.username[0] != '\0' && !app->settings.oauth_token_is_present)
     {
         add_log(app, LOGLEVEL_ERROR, "Cannot start connection: OAuth token is empty, but username is not.");
         return false;
@@ -231,7 +231,7 @@ void irc_on_connect(App* app)
 
     if (app->settings.username[0] != '\0')
     {
-        if (app->settings.token[0] == '\0')
+        if (!app->settings.oauth_token_is_present)
         {
             add_log(app, LOGLEVEL_ERROR, "Can't log in: OAuth token is empty.");
             free(sendbuf);
@@ -242,15 +242,18 @@ void irc_on_connect(App* app)
             if (!CryptUnprotectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
             {
                 add_log(app, LOGLEVEL_ERROR, "CryptUnprotectMemory failed: %i", GetLastError());
+                SecureZeroMemory(app->settings.token, sizeof(app->settings.token));
+                app->settings.oauth_token_is_present = false;
                 return;
             }
             sprintf(sendbuf, "PASS %s\r\nNICK %s\r\n", app->settings.token, app->settings.username);
             if (!CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
             {
                 add_log(app, LOGLEVEL_ERROR, "CryptProtectMemory failed: %i", GetLastError());
+                SecureZeroMemory(app->settings.token, sizeof(app->settings.token));
+                app->settings.oauth_token_is_present = false;
                 return;
             }
-            add_log(app, LOGLEVEL_INFO, "Logging in as \"%s\"...", app->settings.username);
         }
     }
     else
@@ -261,6 +264,7 @@ void irc_on_connect(App* app)
         add_log(app, LOGLEVEL_INFO, "Logging in as \"justinfan%i\"...", r);
     }
 
+    add_log(app, LOGLEVEL_INFO, "Logging in as \"%s\"...", app->settings.username);
     irc_queue_write(app, sendbuf, false);
 }
 
