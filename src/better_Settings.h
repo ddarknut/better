@@ -4,7 +4,7 @@
 #include "better_types.h"
 #include "better_const.h"
 
-const u32 SETTINGS_VERSION = 4;
+const u32 SETTINGS_VERSION = 5;
 
 struct Settings
 {
