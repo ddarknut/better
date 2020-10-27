@@ -404,12 +404,13 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                     if (app.unread_error != -1)
                     {
                         ImGui::SameLine();
-                        ImGui::TextColored(LOG_TEXT_COLORS[LOGLEVEL_USERERROR], "Log contains new errors.");
-                        if (ImGui::IsItemClicked())
+                        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, LOG_TEXT_COLORS[LOGLEVEL_USERERROR]);
+                        if (imgui_clickable_text("Log contains new errors."))
                         {
                             app.settings.show_window_log = true;
                             app.should_focus_log_window = true;
                         }
+                        ImGui::PopStyleColor();
                     }
                 }
                 ImGui::EndChild();
