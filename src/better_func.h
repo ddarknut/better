@@ -5,6 +5,7 @@
 
 void make_lower(char* s);
 void _add_log(App* app, const u8 log_level, const char* src_file, const i32 src_line, const char* const fmt ...);
+void open_url(const char* url);
 
 void load_settings_from_disk(App* app);
 void save_settings_to_disk(App* app);

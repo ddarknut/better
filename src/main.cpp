@@ -349,7 +349,22 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
                 if (ImGui::BeginMenu("Help"))
                 {
-                    ImGui::Text("Better %s\n\nMade by ddarknut.\nContact: ddarknut@protonmail.com\n\nLibraries:\nDear ImGui %s - github.com/ocornut/imgui\nImPlot %s - github.com/epezent/implot", BETTER_VERSION_STR, ImGui::GetVersion(), IMPLOT_VERSION);
+                    ImGui::Text("Better %s\n\nMade by ddarknut.\nContact: ddarknut@protonmail.com", BETTER_VERSION_STR);
+                    if (imgui_clickable_text("ddark.net/better"))
+                        open_url("https://ddark.net/better");
+
+                    ImGui::Text("\nLibraries:");
+
+                    ImGui::Text("Dear ImGui %s", ImGui::GetVersion());
+                    ImGui::SameLine();
+                    if (imgui_clickable_text("github.com/ocornut/imgui"))
+                        open_url("https://github.com/ocornut/imgui");
+
+                    ImGui::Text("ImPlot %s", IMPLOT_VERSION);
+                    ImGui::SameLine();
+                    if (imgui_clickable_text("github.com/epezent/implot"))
+                        open_url("https://github.com/epezent/implot");
+
                     ImGui::EndMenu();
                 }
 

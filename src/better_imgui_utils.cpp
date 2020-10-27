@@ -46,6 +46,28 @@ bool imgui_confirmable_button(char* button_text, ImVec2& button_size, bool skip_
     return res;
 }
 
+bool imgui_clickable_text(const char* fmt, ...)
+{
+    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetColorU32(ImGuiCol_ButtonHovered, 1.0f));
+
+    va_list args;
+    va_start(args, fmt);
+    ImGui::TextV(fmt, args);
+    va_end(args);
+
+    if (ImGui::IsItemHovered())
+    {
+        ImVec2 min = ImGui::GetItemRectMin(),
+               max = ImGui::GetItemRectMax();
+        min.y = max.y;
+        ImGui::GetWindowDrawList()->AddLine(min, max, ImGui::GetColorU32(ImGuiCol_Text), 1.0f);
+    }
+
+    ImGui::PopStyleColor();
+
+    return ImGui::IsItemClicked();
+}
+
 void imgui_tooltip(const char* content)
 {
     if (ImGui::IsItemHovered())

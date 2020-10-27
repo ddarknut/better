@@ -97,6 +97,11 @@ void _add_log(App* app, const u8 log_level, const char* src_file, const i32 src_
     va_end(args);
 }
 
+void open_url(const char* url)
+{
+    ShellExecuteA(NULL, "open", url, NULL, NULL, SW_SHOWNORMAL);
+}
+
 template<typename T>
 static bool binn_try_get_value(u8* data_ptr, T* dest, const char* key, i32 type, i32* ptr_size = NULL)
 {
