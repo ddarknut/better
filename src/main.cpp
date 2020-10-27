@@ -452,7 +452,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 {
                     static char t[9] = "_.-*^*-.";
                     char temp = t[0];
-                    memcpy(&t[0], &t[1], 7);
+                    memmove(&t[0], &t[1], 7);
                     t[7] = temp;
                     ImGui::Text("%s%s%s%s%s%s%s%s", t, t, t, t, t, t, t, t);
                 }
@@ -594,14 +594,23 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
             {
                 f32 avail_width = ImGui::GetContentRegionAvailWidth() - 2 * style.ItemSpacing.x;
                 ImGui::SetNextItemWidth(avail_width * 0.5f);
-                ImGui::InputScalar("##handout_amount", ImGuiDataType_U64, &app.settings.handout_amount, &POINTS_STEP_SMALL, &POINTS_STEP_BIG);
+                if (ImGui::InputScalar("##handout_amount", ImGuiDataType_U64, &app.settings.handout_amount, &POINTS_STEP_SMALL, &POINTS_STEP_BIG))
+                {
+                    if (app.settings.handout_amount > POINTS_MAX)
+                        app.settings.handout_amount = POINTS_MAX;
+                }
                 ImGui::SameLine();
                 if (imgui_confirmable_button("Hand out", ImVec2(avail_width * 0.25f, 0), !app.settings.confirm_handout))
                 {
                     for (auto it = app.points.begin();
                          it != app.points.end();
                          ++it)
-                        it->second += app.settings.handout_amount;
+                    {
+                        if (it->second > POINTS_MAX - app.settings.handout_amount)
+                            it->second = POINTS_MAX;
+                        else
+                            it->second += app.settings.handout_amount;
+                    }
 
                     std::sort(app.leaderboard.begin(),
                               app.leaderboard.end(),
