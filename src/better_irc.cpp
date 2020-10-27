@@ -80,15 +80,21 @@ bool irc_connect(App* app)
         return false;
     }
 
-    if (app->settings.username[0] != '\0' && !app->settings.oauth_token_is_present)
+    if (app->settings.username[0] == '\0')
     {
-        add_log(app, LOGLEVEL_USERERROR, "Cannot start connection: OAuth token is empty, but username is not.");
+        add_log(app, LOGLEVEL_USERERROR, "Cannot start connection: Username is empty.");
+        return false;
+    }
+
+    if (!app->settings.oauth_token_is_present)
+    {
+        add_log(app, LOGLEVEL_USERERROR, "Cannot start connection: OAuth token is empty.");
         return false;
     }
 
     if (dns_thread_running(app))
     {
-        add_log(app, LOGLEVEL_USERERROR, "Cannot start connection: DNS thread is still running.");
+        add_log(app, LOGLEVEL_USERERROR, "Cannot start connection: Still waiting on another DNS request.");
         return false;
     }
 
@@ -229,47 +235,47 @@ void irc_on_connect(App* app)
 
     char* sendbuf = (char*) malloc(SEND_BUFLEN+1);
 
-    if (app->settings.username[0] != '\0')
+    if (app->settings.username[0] == '\0')
     {
-        if (!app->settings.oauth_token_is_present)
-        {
-            add_log(app, LOGLEVEL_USERERROR, "Can't log in: OAuth token is empty.");
-            free(sendbuf);
-            irc_disconnect(app);
-        }
-        else
-        {
-            if (!CryptUnprotectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
-            {
-                add_log(app, LOGLEVEL_DEVERROR, "CryptUnprotectMemory failed: %i", GetLastError());
-                SecureZeroMemory(app->settings.token, sizeof(app->settings.token));
-                app->settings.oauth_token_is_present = false;
-                return;
-            }
-            sprintf(sendbuf, "PASS %s\r\nNICK %s\r\n", app->settings.token, app->settings.username);
-            if (!CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
-            {
-                add_log(app, LOGLEVEL_DEVERROR, "CryptProtectMemory failed: %i", GetLastError());
-                SecureZeroMemory(app->settings.token, sizeof(app->settings.token));
-                app->settings.oauth_token_is_present = false;
-                return;
-            }
-        }
+        add_log(app, LOGLEVEL_USERERROR, "Can't log in: Username is empty.");
+        free(sendbuf);
+        irc_disconnect(app);
+    }
+    else if (!app->settings.oauth_token_is_present)
+    {
+        add_log(app, LOGLEVEL_USERERROR, "Can't log in: OAuth token is empty.");
+        free(sendbuf);
+        irc_disconnect(app);
     }
     else
     {
-        i32 r = (i32)((f32)rand()*100000/RAND_MAX) % 100000;
-        sprintf(sendbuf, "PASS null\r\nNICK justinfan%i\r\n", r);
-        add_log(app, LOGLEVEL_WARN, "Username is empty. Better will log in as an anonymous user, and will only be able to read, not send messages to the chat.");
-        add_log(app, LOGLEVEL_INFO, "Logging in as \"justinfan%i\"...", r);
-    }
+        if (!CryptUnprotectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
+        {
+            add_log(app, LOGLEVEL_DEVERROR, "CryptUnprotectMemory failed: %i", GetLastError());
+            SecureZeroMemory(app->settings.token, sizeof(app->settings.token));
+            app->settings.oauth_token_is_present = false;
+            return;
+        }
 
-    add_log(app, LOGLEVEL_INFO, "Logging in as \"%s\"...", app->settings.username);
-    irc_queue_write(app, sendbuf, false);
+        sprintf(sendbuf, "PASS %s\r\nNICK %s\r\n", app->settings.token, app->settings.username);
+
+        if (!CryptProtectMemory(app->settings.token, sizeof(app->settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
+        {
+            add_log(app, LOGLEVEL_DEVERROR, "CryptProtectMemory failed: %i", GetLastError());
+            SecureZeroMemory(app->settings.token, sizeof(app->settings.token));
+            app->settings.oauth_token_is_present = false;
+            return;
+        }
+
+        add_log(app, LOGLEVEL_INFO, "Logging in as \"%s\"...", app->settings.username);
+
+        irc_queue_write(app, sendbuf, false);
+    }
 }
 
 void irc_send_buffer(App* app, char* buf)
 {
+    // printf("<%s", buf);
     i32 res = send(app->sock, buf, (i32)strlen(buf), 0);
     if (res == SOCKET_ERROR)
     {
@@ -438,6 +444,7 @@ void irc_on_read_or_close(App* app)
             char* messages_begin = buf + RECV_BUFLEN - partial_size;
 
             (buf + RECV_BUFLEN)[bytes] = '\0';
+            // printf(">%s", buf+RECV_BUFLEN);
 
             if (partial_size > 0)
                 memcpy(messages_begin, partial_msg, partial_size);
@@ -483,15 +490,29 @@ void irc_handle_message(App* app, IrcMessage* msg)
             case 1: // Welcome message
             {
                 make_lower(app->settings.channel);
+                make_lower(app->settings.username);
 
-                i32 max_len = 8 + CHANNEL_NAME_MAX;
-                char* join_msg = (char*)malloc(max_len+1);
-                sprintf(join_msg, "JOIN #%s\r\n", app->settings.channel);
-                join_msg[max_len] = '\0';
+                if (msg->params.size() < 1)
+                {
+                    add_log(app, LOGLEVEL_DEVERROR, "Expected at least one parameter with welcome message.");
+                    irc_disconnect(app);
+                }
+                else if (strcmp(app->settings.username, msg->params[0]) != 0)
+                {
+                    add_log(app, LOGLEVEL_USERERROR, "Login failed: Username did not match the OAuth token's owner.", app->settings.channel);
+                    irc_disconnect(app);
+                }
+                else
+                {
+                    add_log(app, LOGLEVEL_INFO, "Login successful. Joining channel \"%s\"...", app->settings.channel);
 
-                add_log(app, LOGLEVEL_INFO, "Login successful. Joining channel \"%s\"...", app->settings.channel);
+                    i32 max_len = 8 + CHANNEL_NAME_MAX;
+                    char* join_msg = (char*)malloc(max_len+1);
+                    sprintf(join_msg, "JOIN #%s\r\n", app->settings.channel);
+                    join_msg[max_len] = '\0';
 
-                irc_queue_write(app, join_msg, false);
+                    irc_queue_write(app, join_msg, false);
+                }
 
                 msg->free_all();
             } break;

@@ -1104,12 +1104,13 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 ImGui::NextColumn();
 
                 ImGui::Text("Username");
-                imgui_extra("May be left blank, in which case Better will log in anonymously, and won't be able to send messages to the channel. OAuth token will be ignored in this case.\n");
+                imgui_extra("The username of the account the bot will log in as.\n");
                 ImGui::NextColumn();
                 ImGui::PushID("username");
                 ImGui::SetNextItemWidth(widget_width);
                 if (irc_connected) imgui_push_disabled();
-                ImGui::InputText("", app.settings.username, CHANNEL_NAME_MAX);
+                if (ImGui::InputText("", app.settings.username, CHANNEL_NAME_MAX))
+                    make_lower(app.settings.username);
                 if (irc_connected) imgui_pop_disabled();
                 ImGui::PopID();
                 ImGui::NextColumn();
@@ -1122,7 +1123,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
                 if (irc_connected) imgui_push_disabled();
 
-                if (app.settings.token[0] == '\0')
+                if (!app.settings.oauth_token_is_present)
                 {
                     ImGui::AlignTextToFramePadding();
                     ImGui::Text("(empty)");
@@ -1161,6 +1162,12 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                                 else
                                 {
                                     if (!EmptyClipboard()) add_log(&app, LOGLEVEL_DEVERROR, "EmptyClipboard failed: %d", GetLastError());
+
+                                    // Trim trailing whitespace in token
+                                    char* c = app.settings.token;
+                                    while (*c && *c != ' ' && *c != '\r' && *c != '\n') ++c;
+                                    *c = '\0';
+
                                     if (!CryptProtectMemory(app.settings.token, sizeof(app.settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
                                     {
                                         add_log(&app, LOGLEVEL_DEVERROR, "CryptProtectMemory failed: %i", GetLastError());
@@ -1182,7 +1189,10 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                     ImGui::Text("(hidden)");
                     ImGui::SameLine();
                     if (imgui_confirmable_button("Clear", ImVec2(4.0f*ImGui::GetFontSize(), 0)))
+                    {
                         SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
+                        app.settings.oauth_token_is_present = false;
+                    }
                 }
 
                 if (irc_connected) imgui_pop_disabled();
