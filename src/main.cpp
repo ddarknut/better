@@ -4,7 +4,6 @@
 // TODO: undo stack
 // TODO: style menu
 // TODO: Allow use of option name when putting in bets
-// TODO: Cumulative betting mode
 
 #pragma warning (disable: 4996) // This function or variable may be unsafe (strcpy, sprintf, ...)
 
@@ -1250,6 +1249,20 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                 if (bets_open) imgui_push_disabled();
                 ImGui::PushID("Allow multibets");
                 ImGui::Checkbox("", &app.settings.allow_multibets);
+                if (bets_open) imgui_pop_disabled();
+                ImGui::PopID();
+                ImGui::NextColumn();
+
+                ImGui::Text("Bet update mode");
+                imgui_extra("This option controls what happens if a viewer places a bet on an option where they already have a wager.\n\nSet mode: The existing wager is replaced by the input amount.\nAdd mode: The input amount is added to the existing wager.");
+                ImGui::NextColumn();
+                if (bets_open) imgui_push_disabled();
+                ImGui::PushID("Bet update mode");
+                if (ImGui::RadioButton("Set", !app.settings.add_mode))
+                    app.settings.add_mode = false;
+                ImGui::SameLine();
+                if (ImGui::RadioButton("Add", app.settings.add_mode))
+                    app.settings.add_mode = true;
                 if (bets_open) imgui_pop_disabled();
                 ImGui::PopID();
                 ImGui::NextColumn();

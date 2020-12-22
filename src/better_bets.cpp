@@ -15,41 +15,90 @@ u8 bets_status(App* app)
     return BETS_STATUS_CLOSED;
 }
 
-// excluding_option starts at 0
-u64 available_points(App* app, std::string* user, i32 excluding_option)
+// betting_on_option is 0-indexed
+u64 available_points(App* app, std::string* user, i32 betting_on_option)
 {
-    u64 res = app->points[*user];
-    i32 i = 0;
-    for (auto it_table = app->bet_registry.begin();
-         it_table != app->bet_registry.end();
-         ++it_table)
-    {
-        if (i++ == excluding_option) continue;
+    assert(betting_on_option >= 0 && betting_on_option < app->bet_registry.size());
 
-        auto it_bet = it_table->bets.find(*user);
-        if (it_bet != it_table->bets.end())
+    u64 res = app->points[*user];
+
+    if (app->settings.add_mode)
+    {
+        // Subtract wager on this option.
+        auto bet_map = app->bet_registry[betting_on_option].bets;
+        auto bet = bet_map.find(*user);
+        if (bet != bet_map.end())
         {
-            res -= it_bet->second;
-            if (res <= 0) return 0;
+            if (bet->second > res)
+                res = 0;
+            else
+                res -= bet->second;
         }
     }
+
+    if (app->settings.allow_multibets)
+    {
+        // Subtract wagers on other options.
+        i32 i = 0;
+        for (auto it_table = app->bet_registry.begin();
+             it_table != app->bet_registry.end();
+             ++it_table)
+        {
+            if (!app->settings.add_mode && i == betting_on_option)
+            {
+                ++i;
+                continue;
+            }
+
+            auto it_bet = it_table->bets.find(*user);
+            if (it_bet != it_table->bets.end())
+            {
+                if (it_bet->second > res)
+                    res = 0;
+                else
+                    res -= it_bet->second;
+            }
+
+            ++i;
+        }
+    }
+
     return res;
+}
+
+void register_max_bet(App* app, std::string* user, i32 option)
+{
+    u64 amount = available_points(app, user, option);
+    if (amount > 0) register_bet(app, user, amount, option);
 }
 
 void register_bet(App* app, std::string* user, u64 amount, i32 option)
 {
     if (option < 0 || option >= app->bet_registry.size()) return;
 
+    if (available_points(app, user, option) < amount) return;
+
+    // If multibets are not allowed, remove wagers on other options
     if (!app->settings.allow_multibets)
+    {
+        i32 idx = 0;
         for (auto it = app->bet_registry.begin();
              it != app->bet_registry.end();
-             ++it)
-            it->bets.erase(*user);
+             ++it, ++idx)
+            if (idx != option) it->bets.erase(*user);
+    }
 
-    if (amount == 0)
-        app->bet_registry[option].bets.erase(*user);
-    else if (available_points(app, user, option) >= amount)
-        app->bet_registry[option].bets[*user] = amount;
+    if (app->settings.add_mode)
+    {
+        app->bet_registry[option].bets[*user] += amount;
+    }
+    else
+    {
+        if (amount == 0)
+            app->bet_registry[option].bets.erase(*user);
+        else
+            app->bet_registry[option].bets[*user] = amount;
+    }
 }
 
 void open_bets(App* app)

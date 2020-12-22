@@ -29,6 +29,7 @@ const char* BINN_KEY_command_prefix            = "command_prefix";
 const char* BINN_KEY_points_name               = "points_name";
 const char* BINN_KEY_starting_points           = "starting_points";
 const char* BINN_KEY_allow_multibets           = "allow_multibets";
+const char* BINN_KEY_add_mode                  = "add_mode";
 const char* BINN_KEY_coyote_time               = "coyote_time";
 const char* BINN_KEY_announce_bets_open        = "announce_bets_open";
 const char* BINN_KEY_announce_bets_close       = "announce_bets_close";
@@ -172,6 +173,7 @@ void load_settings_from_disk(App* app)
                 binn_try_get_value(data_ptr, &app->settings.is_mod,                    BINN_KEY_is_mod,                    BINN_BOOL);
                 binn_try_get_value(data_ptr, &app->settings.starting_points,           BINN_KEY_starting_points,           BINN_UINT64);
                 binn_try_get_value(data_ptr, &app->settings.allow_multibets,           BINN_KEY_allow_multibets,           BINN_BOOL);
+                binn_try_get_value(data_ptr, &app->settings.add_mode,                  BINN_KEY_add_mode,                  BINN_BOOL);
                 binn_try_get_value(data_ptr, &app->settings.coyote_time,               BINN_KEY_coyote_time,               BINN_UINT32);
                 binn_try_get_value(data_ptr, &app->settings.announce_bets_open,        BINN_KEY_announce_bets_open,        BINN_BOOL);
                 binn_try_get_value(data_ptr, &app->settings.announce_bets_close,       BINN_KEY_announce_bets_close,       BINN_BOOL);
@@ -257,6 +259,7 @@ void save_settings_to_disk(App* app)
         binn_object_set_str    (obj, BINN_KEY_points_name,               app->settings.points_name);
         binn_object_set_uint64 (obj, BINN_KEY_starting_points,           app->settings.starting_points);
         binn_object_set_bool   (obj, BINN_KEY_allow_multibets,           app->settings.allow_multibets);
+        binn_object_set_bool   (obj, BINN_KEY_add_mode,                  app->settings.add_mode);
         binn_object_set_uint32 (obj, BINN_KEY_coyote_time,               app->settings.coyote_time);
         binn_object_set_bool   (obj, BINN_KEY_announce_bets_open,        app->settings.announce_bets_open);
         binn_object_set_bool   (obj, BINN_KEY_announce_bets_close,       app->settings.announce_bets_close);

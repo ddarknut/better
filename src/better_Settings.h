@@ -4,7 +4,7 @@
 #include "better_types.h"
 #include "better_const.h"
 
-const u32 SETTINGS_VERSION = 5;
+const u32 SETTINGS_VERSION = 6;
 
 struct Settings
 {
@@ -31,6 +31,7 @@ struct Settings
 
     u64 starting_points = 100;
     bool allow_multibets = true;
+    bool add_mode = false;
     u32 coyote_time = DEFAULT_COYOTE_TIME;
 
     bool announce_bets_open = true;

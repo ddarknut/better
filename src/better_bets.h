@@ -7,7 +7,8 @@
 #include "better_App.h"
 
 u8 bets_status(App* app);
-u64 available_points(App* app, std::string* user, i32 excluding_option = -1);
+u64 available_points(App* app, std::string* user, i32 betting_on_option);
+void register_max_bet(App* app, std::string* user, i32 option);
 void register_bet(App* app, std::string* user, u64 amount, i32 option);
 void open_bets(App* app);
 void close_bets(App* app);

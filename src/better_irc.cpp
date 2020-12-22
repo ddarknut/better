@@ -581,18 +581,19 @@ void irc_handle_message(App* app, IrcMessage* msg)
                               strcmp(command, "bets") == 0))
                     {
                         char* end;
-                        u64 amount;
-                        if (strcmp(param1, "all") == 0)
-                            amount = it_points->second;
-                        else
-                            amount = strtoull(param1, &end, 10);
-                        if (errno != ERANGE && end != param1)
+                        i32 option = strtol(param2, &end, 10);
+                        if (errno != ERANGE && end != param2)
                         {
-                            i32 option = strtol(param2, &end, 10);
-                            if (errno != ERANGE && end != param2)
+                            option -= 1;
+                            if (strcmp(param1, "all") == 0)
+                                register_max_bet(app, &s_name, option);
+                            else
                             {
-                                option -= 1;
-                                register_bet(app, &s_name, amount, option);
+                                u64 amount = strtoull(param1, &end, 10);
+                                if (errno != ERANGE && end != param1)
+                                {
+                                    register_bet(app, &s_name, amount, option);
+                                }
                             }
                         }
                         errno = 0;
