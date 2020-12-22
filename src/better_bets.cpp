@@ -44,7 +44,7 @@ u64 available_points(App* app, std::string* user, i32 betting_on_option)
              it_table != app->bet_registry.end();
              ++it_table)
         {
-            if (!app->settings.add_mode && i == betting_on_option)
+            if (i == betting_on_option)
             {
                 ++i;
                 continue;
