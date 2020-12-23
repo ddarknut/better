@@ -497,7 +497,7 @@ void irc_handle_message(App* app, IrcMessage* msg)
                     add_log(app, LOGLEVEL_DEVERROR, "Expected at least one parameter with welcome message.");
                     irc_disconnect(app);
                 }
-                else if (strcmp(app->settings.username, msg->params[0]) != 0)
+                else if (_stricmp(app->settings.username, msg->params[0]) != 0)
                 {
                     add_log(app, LOGLEVEL_USERERROR, "Login failed: Username did not match the OAuth token's owner.", app->settings.channel);
                     irc_disconnect(app);
@@ -527,76 +527,162 @@ void irc_handle_message(App* app, IrcMessage* msg)
     {
         if (strcmp(msg->command, "PRIVMSG") == 0)
         {
-            // Add to chat log
-            i32 i = (app->chat_first_index + app->chat_count) % CHAT_BUFFER_MAX;
-            ChatEntry* chat_entry = app->chat_buffer + i;
-            if (app->chat_count == CHAT_BUFFER_MAX)
-            {
-                chat_entry->free_all();
-                app->chat_first_index = (app->chat_first_index + 1) % CHAT_BUFFER_MAX;
-            }
-            else
-                ++app->chat_count;
-            chat_entry->name = msg->name;
-            chat_entry->msg = msg->params.back();
+            char* name = msg->name;
+            std::string s_name = std::string(name);
+            char* msg_content = msg->params.back();
 
-            msg->params.pop_back();
-            msg->free_params();
-            free(msg->command);
-            msg = NULL;
+            // Add to chat log
+            {
+                i32 i = (app->chat_first_index + app->chat_count) % CHAT_BUFFER_MAX;
+                ChatEntry* chat_entry = app->chat_buffer + i;
+                if (app->chat_count == CHAT_BUFFER_MAX)
+                {
+                    chat_entry->free_all();
+                    app->chat_first_index = (app->chat_first_index + 1) % CHAT_BUFFER_MAX;
+                }
+                else
+                    ++app->chat_count;
+                chat_entry->name = name;
+                chat_entry->msg = msg_content;
+            }
+
+            // Free everything from the IRC message except name and trailing
+            // param. The ChatEntry now owns those strings.
+            {
+                msg->params.pop_back();
+                msg->free_params();
+                free(msg->command);
+                msg = NULL;
+            }
 
             // Add user to leaderboard if they aren't there
-            std::string s_name = std::string(chat_entry->name);
-            auto it_points = app->points.find(s_name);
-            if (it_points == app->points.end())
             {
-                app->points[s_name] = app->settings.starting_points;
-                app->leaderboard.push_back(s_name);
-                std::sort(app->leaderboard.begin(),
-                          app->leaderboard.end(),
-                          [&](std::string a, std::string b) {
-                              return app->points[a] > app->points[b];
-                          });
-                it_points = app->points.find(s_name);
+                auto it_points = app->points.find(s_name);
+                if (it_points == app->points.end())
+                {
+                    app->points[s_name] = app->settings.starting_points;
+                    app->leaderboard.push_back(s_name);
+                    std::sort(app->leaderboard.begin(),
+                              app->leaderboard.end(),
+                              [&](std::string a, std::string b) {
+                                  return app->points[a] > app->points[b];
+                              });
+                    it_points = app->points.find(s_name);
+                }
             }
 
-            if (chat_entry->msg[0] == app->settings.command_prefix[0])
+            //printf("'%s' ", msg_content);
+
+            if (msg_content[0] == app->settings.command_prefix[0])
             {
                 char command[CHAT_COMMAND_MAX+1];
-                char param1[CHAT_PARAM_MAX+1];
-                char param2[CHAT_PARAM_MAX+1];
-                char fmt[2*CHAT_PARAM_MAX + CHAT_COMMAND_MAX + 10];
-                sprintf(fmt, "%s%%%is %%%is %%%is", app->settings.command_prefix, CHAT_COMMAND_MAX, CHAT_PARAM_MAX, CHAT_PARAM_MAX);
-                i32 num_scanned = sscanf(chat_entry->msg, fmt, command, param1, param2);
-                if (num_scanned > 0)
+                char* read = msg_content + 1;
+
+                // Extract command
                 {
-                    make_lower(command);
-                    if (strcmp(command, app->settings.points_name) == 0)
+                    char* write;
+                    for (write = command;
+                         write < command + CHAT_COMMAND_MAX && *read && *read != ' ';
+                         ++read, ++write)
+                        *write = *read;
+                    *write = '\0';
+
+                    for (; *read == ' '; ++read);
+                }
+
+                //printf("'%s' ", command);
+
+                if (strlen(command) > 0)
+                {
+                    if (_stricmp(command, app->settings.points_name) == 0)
                     {
+                        //////////////////////
+                        // FEEDBACK COMMAND //
+                        //////////////////////
+
                         app->point_feedback_queue.insert(s_name);
                     }
                     else if (bets_status(app) != BETS_STATUS_CLOSED &&
-                             num_scanned > 2 &&
-                             (strcmp(command, "bet")  == 0 ||
-                              strcmp(command, "bets") == 0))
+                             (_stricmp(command, "bet")  == 0 ||
+                              _stricmp(command, "bets") == 0))
                     {
-                        char* end;
-                        i32 option = strtol(param2, &end, 10);
-                        if (errno != ERANGE && end != param2)
+                        /////////////////
+                        // BET COMMAND //
+                        /////////////////
+
+                        // Extract amount parameter
+                        char amount_param[CHAT_PARAM_MAX+1];
                         {
-                            option -= 1;
-                            if (strcmp(param1, "all") == 0)
-                                register_max_bet(app, &s_name, option);
-                            else
+                            char* write;
+                            for (write = amount_param;
+                                 write < amount_param + CHAT_PARAM_MAX && *read && *read != ' ';
+                                 ++read, ++write)
+                                *write = *read;
+                            *write = '\0';
+
+                            for (; *read == ' '; ++read);
+                        }
+
+                        //printf("'%s' ", amount_param);
+
+                        if (strlen(amount_param) > 0)
+                        {
+                            // Extract trailing option parameter
+                            char option_param[CHAT_PARAM_MAX+1];
                             {
-                                u64 amount = strtoull(param1, &end, 10);
-                                if (errno != ERANGE && end != param1)
+                                char* write;
+                                for (write = option_param;
+                                     write < option_param + CHAT_PARAM_MAX && *read;
+                                     ++read, ++write)
+                                    *write = *read;
+                                *write = '\0';
+                            }
+
+                            //printf("'%s' ", option_param);
+
+                            if (strlen(option_param) > 0)
+                            {
+                                char* end;
+
+                                // Interpret option either as number (index) or a string (name)
+                                i32 option = strtol(option_param, &end, 10);
+                                if (errno == ERANGE || end == option_param)
                                 {
-                                    register_bet(app, &s_name, amount, option);
+                                    errno = 0;
+
+                                    option = -1;
+                                    i32 idx = 0;
+                                    for (auto& table : app->bet_registry)
+                                    {
+                                        make_lower(option_param);
+                                        if (_stricmp(option_param, table.option_name) == 0)
+                                        {
+                                            option = idx;
+                                            break;
+                                        }
+                                        ++idx;
+                                    }
+                                }
+                                else option -= 1; // When users refer to options by number, they are 1-indexed. Make it 0-indexed.
+
+                                //printf("#%i\n", option);
+
+                                if (option >= 0)
+                                {
+                                    if (_stricmp(amount_param, "all") == 0)
+                                        register_max_bet(app, &s_name, option);
+                                    else
+                                    {
+                                        u64 amount = strtoull(amount_param, &end, 10);
+                                        if (errno != ERANGE && end != amount_param)
+                                        {
+                                            errno = 0;
+                                            register_bet(app, &s_name, amount, option);
+                                        }
+                                    }
                                 }
                             }
                         }
-                        errno = 0;
                     }
                 }
             }

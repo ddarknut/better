@@ -68,6 +68,8 @@ u64 available_points(App* app, std::string* user, i32 betting_on_option)
 
 void register_max_bet(App* app, std::string* user, i32 option)
 {
+    if (option < 0 || option >= app->bet_registry.size()) return;
+
     u64 amount = available_points(app, user, option);
     if (amount > 0) register_bet(app, user, amount, option);
 }

@@ -57,10 +57,10 @@ const i32 TIMER_STEP_BIG = 5;
 const u32 DEFAULT_COYOTE_TIME = 5;
 
 const i32 CHAT_COMMAND_MAX = 50;
-const i32 CHAT_PARAM_MAX = 50;
+const i32 CHAT_PARAM_MAX = 60;
 
 const i32 POINTS_NAME_MAX = 30;
-const i32 OPTION_NAME_MAX = 20;
+const i32 OPTION_NAME_MAX = 50;
 
 // NOTE: These timevalues are in milliseconds (used with SetTimer)
 const u32 PRIVMSG_MIN_INTERVAL = (u32)(30000.0 / 20.0 + 0.1);
@@ -87,8 +87,8 @@ const char *const LOG_LEVEL_ID_STR[LOGLEVEL_ENUM_SIZE] =
     "derr",
 };
 
-static_assert(POINTS_NAME_MAX < CHAT_COMMAND_MAX);
-static_assert(OPTION_NAME_MAX < CHAT_COMMAND_MAX);
-static_assert(TOKEN_MAX % CRYPTPROTECTMEMORY_BLOCK_SIZE == 0);
+static_assert(POINTS_NAME_MAX < CHAT_COMMAND_MAX); // We use the points name for the feedback command.
+static_assert(OPTION_NAME_MAX < CHAT_PARAM_MAX); // Now that users can refer to options by name, the parameter buffer needs to be big enough to contain any name.
+static_assert(TOKEN_MAX % CRYPTPROTECTMEMORY_BLOCK_SIZE == 0); // Requirement by the crypto api.
 
 #endif // BETTER_CONST_H

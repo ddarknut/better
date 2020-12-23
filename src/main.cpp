@@ -3,7 +3,6 @@
 // TODO: 'bet n%'
 // TODO: undo stack
 // TODO: style menu
-// TODO: Allow use of option name when putting in bets
 
 #pragma warning (disable: 4996) // This function or variable may be unsafe (strcpy, sprintf, ...)
 
