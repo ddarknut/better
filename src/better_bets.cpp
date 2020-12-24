@@ -74,11 +74,11 @@ void register_max_bet(App* app, std::string* user, i32 option)
     if (amount > 0) register_bet(app, user, amount, option);
 }
 
-void register_bet(App* app, std::string* user, u64 amount, i32 option)
+void register_bet(App* app, std::string* user, i64 amount, i32 option)
 {
     if (option < 0 || option >= app->bet_registry.size()) return;
 
-    if (available_points(app, user, option) < amount) return;
+    if (amount > 0 && available_points(app, user, option) < (u64)amount) return;
 
     // If multibets are not allowed, remove wagers on other options
     if (!app->settings.allow_multibets)
@@ -92,11 +92,16 @@ void register_bet(App* app, std::string* user, u64 amount, i32 option)
 
     if (app->settings.add_mode)
     {
-        app->bet_registry[option].bets[*user] += amount;
+        u64 current_amount = app->bet_registry[option].bets[*user];
+        i64 new_amount = current_amount + amount;
+        if (new_amount <= 0)
+            app->bet_registry[option].bets.erase(*user);
+        else
+            app->bet_registry[option].bets[*user] = new_amount;
     }
     else
     {
-        if (amount == 0)
+        if (amount <= 0)
             app->bet_registry[option].bets.erase(*user);
         else
             app->bet_registry[option].bets[*user] = amount;

@@ -673,7 +673,7 @@ void irc_handle_message(App* app, IrcMessage* msg)
                                         register_max_bet(app, &s_name, option);
                                     else
                                     {
-                                        u64 amount = strtoull(amount_param, &end, 10);
+                                        i64 amount = strtoll(amount_param, &end, 10);
                                         if (errno != ERANGE && end != amount_param)
                                         {
                                             errno = 0;
