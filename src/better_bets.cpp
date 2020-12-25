@@ -110,6 +110,12 @@ void register_bet(App* app, std::string* user, i64 amount, i32 option)
 
 void open_bets(App* app)
 {
+    if (app->bet_registry.size() == 0)
+    {
+        add_log(app, LOGLEVEL_USERERROR, "Cannot open bets with no options.");
+        return;
+    }
+
     add_log(app, LOGLEVEL_INFO, "Opening bets for the next %i+%u seconds.", app->settings.timer_setting, app->settings.coyote_time);
 
     app->timer_left = (f32) app->settings.timer_setting;
@@ -121,10 +127,10 @@ void open_bets(App* app)
 
     if (app->settings.announce_bets_open)
     {
-        #define MSG_LEN 150 + CHANNEL_NAME_MAX + 2*POINTS_NAME_MAX
+        #define MSG_LEN (200 + CHANNEL_NAME_MAX + 2*POINTS_NAME_MAX + OPTION_NAME_MAX)
         static_assert(MSG_LEN < 512);
         char* buf = (char*) malloc(MSG_LEN);
-        sprintf(buf, "PRIVMSG #%s :Bets are now OPEN! Type %s%s to see how many %s you have, and %sbet (amount) (option) to place a bet. E.g. %sbet 100 1\r\n", app->settings.channel, app->settings.command_prefix, app->settings.points_name, app->settings.points_name, app->settings.command_prefix, app->settings.command_prefix);
+        sprintf(buf, "PRIVMSG #%s :Bets are now OPEN! Type %s%s to see how many %s you have, and %sbet (amount) (option) to place a bet. E.g. \"%sbet 100 %s\" or \"%sbet all %llu\"\r\n", app->settings.channel, app->settings.command_prefix, app->settings.points_name, app->settings.points_name, app->settings.command_prefix, app->settings.command_prefix, app->bet_registry[0].option_name, app->settings.command_prefix, app->bet_registry.size());
         irc_queue_write(app, buf, true);
     }
 }
