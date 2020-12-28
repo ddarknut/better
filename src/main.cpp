@@ -877,7 +877,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
             char** labels = (char**) malloc(sizeof(char*) * app.bet_registry.size());
             f64* positions = (f64*) malloc(sizeof(f64) * app.bet_registry.size());
             for (int i = 0; i < app.bet_registry.size(); ++i)
-                labels[i] = (char*) malloc(20);
+                labels[i] = (char*) malloc(OPTION_NAME_MAX + 1);
 
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(display_w * 0.5f - 150.f, display_h * 0.5f - 100.f), ImGuiCond_FirstUseEver);
