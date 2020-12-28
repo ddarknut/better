@@ -45,6 +45,40 @@ void make_lower(char* s)
     for(; *s; ++s) *s = tolower(*s);
 }
 
+bool str_contains(const char* const s, const char c)
+{
+    for (const char* p = s; *p != '\0'; ++p)
+        if (*p == c) return true;
+    return false;
+}
+
+void trim_whitespace(char* s)
+{
+    char* begin = s;
+
+    // Leading whitespace
+    while(str_contains(" \t\r\n", *begin)) ++begin;
+
+    if (*begin == '\0')
+    {
+        // String is all whitespace
+        *s = '\0';
+        return;
+    }
+
+    // Trailing whitespace
+    char* last = begin;
+    while(last[1]) ++last; // Find end of string
+    while(last > begin && str_contains(" \t\r\n", *last)) --last;
+
+    memmove(s, begin, last - begin + 1);
+
+    last -= begin - s;
+
+    // Write new null terminator character
+    last[1] = '\0';
+}
+
 void _add_log(App* app, const u8 log_level, const char* src_file, const i32 src_line, const char* const fmt ...)
 {
     va_list args;

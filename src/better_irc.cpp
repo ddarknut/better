@@ -327,17 +327,10 @@ void irc_on_write(App* app)
     }
 }
 
-better_internal bool contains(const char* const s, const char c)
-{
-    for (const char* p = s; *p != '\0'; ++p)
-        if (*p == c) return true;
-    return false;
-}
-
 better_internal bool parse_extract(char** ptr, const char* const stop_at, char** res)
 {
     char* begin = *ptr;
-    while (!contains(stop_at, **ptr))
+    while (!str_contains(stop_at, **ptr))
     {
         ++*ptr;
         if (**ptr == '\0')
@@ -590,8 +583,6 @@ void irc_handle_message(App* app, IrcMessage* msg)
                     for (; *read == ' '; ++read);
                 }
 
-                //printf("'%s' ", command);
-
                 if (strlen(command) > 0)
                 {
                     if (_stricmp(command, app->settings.points_name) == 0)
@@ -623,8 +614,6 @@ void irc_handle_message(App* app, IrcMessage* msg)
                             for (; *read == ' '; ++read);
                         }
 
-                        //printf("'%s' ", amount_param);
-
                         if (strlen(amount_param) > 0)
                         {
                             // Extract trailing option parameter
@@ -637,8 +626,6 @@ void irc_handle_message(App* app, IrcMessage* msg)
                                     *write = *read;
                                 *write = '\0';
                             }
-
-                            //printf("'%s' ", option_param);
 
                             if (strlen(option_param) > 0)
                             {
@@ -664,8 +651,6 @@ void irc_handle_message(App* app, IrcMessage* msg)
                                     }
                                 }
                                 else option -= 1; // When users refer to options by number, they are 1-indexed. Make it 0-indexed.
-
-                                //printf("#%i\n", option);
 
                                 if (option >= 0)
                                 {

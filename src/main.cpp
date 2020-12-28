@@ -827,7 +827,10 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                         char option_hint[32];
                         sprintf(option_hint, "Option %i", i+1);
                         ImGui::SetNextItemWidth(0.4f * ImGui::GetContentRegionAvail().x);
-                        ImGui::InputTextWithHint("", option_hint, it->option_name, sizeof(it->option_name));
+                        if (ImGui::InputTextWithHint("", option_hint, it->option_name, sizeof(it->option_name)))
+                        {
+                            trim_whitespace(it->option_name);
+                        }
                         ImGui::SameLine();
 
                         ImGui::Text("%i bets, %.0f %s (%.1f%%)", it->bets.size(), option_totals[i], app.settings.points_name, (grand_total_bets == 0.0)? 0.0 : 100.0*option_totals[i]/grand_total_bets);

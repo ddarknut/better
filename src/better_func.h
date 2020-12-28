@@ -4,6 +4,8 @@
 #define add_log(app, log_level, ...) _add_log(app, log_level, __FILE__, __LINE__, __VA_ARGS__)
 
 void make_lower(char* s);
+bool str_contains(const char* const s, const char c);
+void trim_whitespace(char* s);
 void _add_log(App* app, const u8 log_level, const char* src_file, const i32 src_line, const char* const fmt ...);
 void open_url(const char* url);
 
