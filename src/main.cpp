@@ -821,12 +821,20 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
                         ImGui::SameLine();
 
+                        char info_str[50 + POINTS_NAME_MAX];
+                        sprintf(info_str, "%llu bets, %.0f %s (%.1f%%)", it->bets.size(), option_totals[i], app.settings.points_name, (grand_total_bets == 0.0)? 0.0 : 100.0*option_totals[i]/grand_total_bets);
+                        auto info_str_width = ImGui::CalcTextSize(info_str).x;
+
+                        ImGui::PushFont(font_mono);
+
                         ImGui::Text("%i", i+1);
                         ImGui::SameLine();
 
                         char option_hint[32];
                         sprintf(option_hint, "Option %i", i+1);
-                        ImGui::SetNextItemWidth(0.4f * ImGui::GetContentRegionAvail().x);
+                        auto avail = ImGui::GetContentRegionAvail().x;
+                        auto name_width = ImGui::CalcTextSize(*it->option_name? it->option_name : option_hint).x;
+                        ImGui::SetNextItemWidth(BETTER_MAX(name_width + style.FramePadding.x*2, avail - info_str_width));
                         if (ImGui::InputTextWithHint("", option_hint, it->option_name, sizeof(it->option_name)))
                         {
                             trim_whitespace(it->option_name);
@@ -845,7 +853,9 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                         }
                         ImGui::SameLine();
 
-                        ImGui::Text("%i bets, %.0f %s (%.1f%%)", it->bets.size(), option_totals[i], app.settings.points_name, (grand_total_bets == 0.0)? 0.0 : 100.0*option_totals[i]/grand_total_bets);
+                        ImGui::PopFont();
+
+                        ImGui::Text(info_str);
 
                         ImGui::Separator();
 
