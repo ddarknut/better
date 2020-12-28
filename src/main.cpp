@@ -830,6 +830,18 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                         if (ImGui::InputTextWithHint("", option_hint, it->option_name, sizeof(it->option_name)))
                         {
                             trim_whitespace(it->option_name);
+
+                            // Make sure the name isn't taken!
+                            for (auto other_opt = app.bet_registry.begin();
+                                 other_opt != app.bet_registry.end();
+                                 ++other_opt)
+                            {
+                                if (other_opt == it) continue;
+                                if (_stricmp(it->option_name, other_opt->option_name) == 0)
+                                {
+                                    *(it->option_name) = '\0';
+                                }
+                            }
                         }
                         ImGui::SameLine();
 
