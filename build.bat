@@ -26,9 +26,9 @@ set CommonCFlags=/nologo /MP /std:c++17 /W3 /Febuild\better.exe /Fobuild\ /Fdbui
 set CommonLFlags=build\better.res d3d11.lib ws2_32.lib crypt32.lib shell32.lib
 
 if [%1] == [release] (
-    set TargetCFlags=/MD /O2 /D NDEBUG /D BETTER_DEBUG=0
+    set TargetCFlags=/MT /O2 /D NDEBUG /D BETTER_DEBUG=0
 ) else (
-    set TargetCFlags=/MDd /Zi /D BETTER_DEBUG=1
+    set TargetCFlags=/MTd /Zi /D BETTER_DEBUG=1
 )
 
 rc /nologo /fobuild\better.res resources\better.rc
