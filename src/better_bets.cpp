@@ -78,7 +78,11 @@ void register_bet(App* app, std::string* user, i64 amount, i32 option)
 {
     if (option < 0 || option >= app->bet_registry.size()) return;
 
-    if (amount > 0 && available_points(app, user, option) < (u64)amount) return;
+    u64 avail = available_points(app, user, option);
+    if (amount > 0 && avail < (u64)amount)
+    {
+        amount = avail;
+    }
 
     // If multibets are not allowed, remove wagers on other options
     if (!app->settings.allow_multibets)
