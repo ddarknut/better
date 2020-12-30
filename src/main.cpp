@@ -20,6 +20,7 @@
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
 #include <implot.h>
+#include <binn.h>
 
 #include "better.h"
 #include "better_func.h"
@@ -351,12 +352,22 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
                     if (imgui_clickable_text("ddark.net/better"))
                         open_url("https://ddark.net/better");
 
-                    ImGui::Text("\nLibraries:");
+                    ImGui::Text("\nThird party software:");
+
+                    ImGui::Text("Binn %s", binn_version());
+                    ImGui::SameLine();
+                    if (imgui_clickable_text("github.com/liteserver/binn"))
+                        open_url("https://github.com/liteserver/binn");
 
                     ImGui::Text("Dear ImGui %s", ImGui::GetVersion());
                     ImGui::SameLine();
                     if (imgui_clickable_text("github.com/ocornut/imgui"))
                         open_url("https://github.com/ocornut/imgui");
+
+                    ImGui::Text("Fira font family");
+                    ImGui::SameLine();
+                    if (imgui_clickable_text("github.com/bBoxType/FiraSans"))
+                        open_url("https://github.com/bBoxType/FiraSans");
 
                     ImGui::Text("ImPlot %s", IMPLOT_VERSION);
                     ImGui::SameLine();
