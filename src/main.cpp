@@ -1,9 +1,3 @@
-// TODO: Allow secure socket connection (SSL)
-// TODO: Save window position and size to disk
-// TODO: 'bet n%'
-// TODO: undo stack
-// TODO: style menu
-
 #pragma warning (disable: 4996) // This function or variable may be unsafe (strcpy, sprintf, ...)
 
 #include <cstdlib>
