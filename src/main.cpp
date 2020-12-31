@@ -342,7 +342,7 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
 
                 if (ImGui::BeginMenu("Help"))
                 {
-                    ImGui::Text("Better %s\n\nMade by ddarknut.\nContact: ddarknut@protonmail.com", BETTER_VERSION_STR);
+                    ImGui::Text("Better %s\n\nMade by ddarknut.\nContact: mail@ddark.net", BETTER_VERSION_STR);
                     if (imgui_clickable_text("ddark.net/better"))
                         open_url("https://ddark.net/better");
 
