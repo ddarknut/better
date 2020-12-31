@@ -63,8 +63,8 @@ const i32 POINTS_NAME_MAX = 30;
 const i32 OPTION_NAME_MAX = 50;
 
 // NOTE: These timevalues are in milliseconds (used with SetTimer)
-const u32 PRIVMSG_MIN_INTERVAL = (u32)(30000.0 / 20.0 + 0.1);
-const u32 PRIVMSG_MIN_INTERVAL_AS_MOD = (u32)(30000.0 / 100.0 + 0.1);
+const u32 PRIVMSG_MIN_INTERVAL = 1600; // Rate limit is 20 messages per 30 seconds -> 1.5 seconds interval.
+const u32 PRIVMSG_MIN_INTERVAL_AS_MOD = 800; // Rate limit is 100 per 30 seconds -> 0.3 seconds interval.
 const u32 MIN_RECONNECT_INTERVAL = 15000;
 
 const ImVec4 TEXT_COLOR_WARN = ImVec4(1.0f, 0.8f, 0.4f, 1.0f);
