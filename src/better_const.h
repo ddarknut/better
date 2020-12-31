@@ -87,6 +87,39 @@ const char *const LOG_LEVEL_ID_STR[LOGLEVEL_ENUM_SIZE] =
     "derr",
 };
 
+// To make sure we are always backward compatible when loading settings, the
+// values of these keys must not be changed, and they must not collide.
+enum BINN_KEY : int
+{
+    BINN_KEY_handout_amount = 0,
+    BINN_KEY_timer_setting,
+    BINN_KEY_show_window_chat,
+    BINN_KEY_show_window_settings,
+    BINN_KEY_show_window_log,
+    BINN_KEY_show_window_points,
+    BINN_KEY_show_window_bets,
+    BINN_KEY_show_window_debug,
+    BINN_KEY_show_window_statistics,
+    BINN_KEY_auto_connect,
+    BINN_KEY_channel,
+    BINN_KEY_username,
+    BINN_KEY_is_mod,
+    BINN_KEY_command_prefix,
+    BINN_KEY_points_name,
+    BINN_KEY_starting_points,
+    BINN_KEY_allow_multibets,
+    BINN_KEY_add_mode,
+    BINN_KEY_coyote_time,
+    BINN_KEY_announce_bets_open,
+    BINN_KEY_announce_bets_close,
+    BINN_KEY_announce_payout,
+    BINN_KEY_confirm_handout,
+    BINN_KEY_confirm_leaderboard_reset,
+    BINN_KEY_confirm_refund,
+    BINN_KEY_confirm_payout,
+    BINN_KEY_token,
+};
+
 static_assert(POINTS_NAME_MAX < CHAT_COMMAND_MAX); // We use the points name for the feedback command.
 static_assert(OPTION_NAME_MAX < CHAT_PARAM_MAX); // Now that users can refer to options by name, the parameter buffer needs to be big enough to contain any name.
 static_assert(TOKEN_MAX % CRYPTPROTECTMEMORY_BLOCK_SIZE == 0); // Requirement by the crypto api.
