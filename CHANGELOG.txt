@@ -1,4 +1,37 @@
 ==================================================
+Version 0.3.0 (2020-12-31)
+==================================================
+
+- Added an alternative mode for when viewers bet on the same option again called
+  Add mode, where subsequent bets add onto the wager instead of replacing it.
+  The old behavior is called Set mode and is the default for now.
+- Viewers can now use a negative number as the amount when using the bet
+  command. In Add mode this results in subtraction from the wager. In Set mode
+  it removes the bet, as if "bet 0" was used.
+- Viewers can now bet on options using the option name instead of the option's
+  index number. This is case insensitive, but other than that they must type
+  the name exactly right.
+- If a viewer tries to bet using more points than they have available, the max
+  amount is used instead, as if "bet all" was used. Until now, the command would
+  be ignored.
+- Settings are now stored in a backwards compatible format, so starting with the
+  next version you won't have to input your settings again after updates.
+- Got rid of the "anonymous mode." I couldn't see a use case where it would be
+  useful at all.
+- The program now statically links with the runtime library, meaning you don't
+  need any extra dll files in the program folder.
+- Adjusted message rates. The bot doesn't spam quite as much when in moderator
+  mode, but is still twice as fast as non-moderator mode.
+- The GUI now makes slightly better use of the window width in the option
+  list.
+- Links in the help section are now clickable.
+- Updated contact email address in help section.
+- Improved logging of errors.
+- Bug fixes:
+  - Now prevents integer overflow when handing out points.
+  - Fix a buffer overflow that might happen while the stats window was open.
+
+==================================================
 Version 0.2.1 (2020-10-24)
 ==================================================
 
