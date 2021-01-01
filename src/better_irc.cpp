@@ -144,7 +144,11 @@ void irc_timed_reconnect(App* app)
 
         irc_connect(app);
     }
-    else irc_disconnect(app);
+    else
+    {
+        irc_disconnect(app);
+        add_log(app, LOGLEVEL_WARN, "Stopping automatic reconnect because it's too soon after the last reconnect.");
+    }
 }
 
 bool dns_thread_running(App* app)
@@ -448,21 +452,31 @@ void irc_on_read_or_close(App* app)
         }
         else if (bytes == 0)
         {
-            add_log(app, LOGLEVEL_WARN, "Connection closed by the server.");
+            add_log(app, LOGLEVEL_WARN, "Connection closed by the server. (Empty payload)");
             irc_timed_reconnect(app);
             break;
         }
         else
         {
             i32 err = WSAGetLastError();
-            if (err != WSAEWOULDBLOCK)
+            switch (err)
             {
-                // So apparently twitch doesn't respect RFC1459's 512-byte limit -- they only guarantee that a message is no more than 512 *UNICODE CODEPOINTS*. Meaning messages can be as long as 2048 bytes. See: https://discuss.dev.twitch.tv/t/message-character-limit/7793/5
-                // I've increased the buffer size, but I should probably do some testing and make sure the netcode can handle long strings of multibyte characters. I should probably also put in a safety check in front of the strcpy.
+                case WSAEWOULDBLOCK: break; // Do nothing -- this "error" is expected!
 
-                add_log(app, LOGLEVEL_DEVERROR, "Lost connection to Twitch. (recv failed %i)", err);
-                irc_timed_reconnect(app);
+                case WSAECONNRESET:
+                {
+                    // The server unexpectedly reset the connection.
+                    add_log(app, LOGLEVEL_WARN, "Lost connection to Twitch. (WSAECONNRESET)");
+                    irc_timed_reconnect(app);
+                } break;
+
+                default:
+                {
+                    add_log(app, LOGLEVEL_DEVERROR, "Connection failed. (recv returned %i)", err);
+                    irc_timed_reconnect(app);
+                }
             }
+
             break;
         }
     }
