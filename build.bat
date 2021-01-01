@@ -20,7 +20,7 @@ set CommonCFlags=/nologo /MP /std:c++17 /W3 /Febuild\better.exe /Fobuild\ /Fdbui
     /D UNICODE /D _UNICODE /D IMGUI_IMPL_WIN32_DISABLE_GAMEPAD ^
     /Isrc ^
     /Ilib\imgui ^
-    /Ilib\imgui\examples ^
+    /Ilib\imgui\backends ^
     /Ilib\implot ^
     /Ilib\binn\src
 set CommonLFlags=build\better.res d3d11.lib ws2_32.lib crypt32.lib shell32.lib
@@ -39,8 +39,8 @@ if errorlevel 1 (
 
     cl src\*.cpp src\*.c ^
        lib\imgui\*.cpp ^
-       lib\imgui\examples\imgui_impl_dx11.cpp ^
-       lib\imgui\examples\imgui_impl_win32.cpp ^
+       lib\imgui\backends\imgui_impl_dx11.cpp ^
+       lib\imgui\backends\imgui_impl_win32.cpp ^
        lib\implot\*.cpp ^
        %CommonCFlags% %TargetCFlags% ^
        /link %CommonLFlags%
