@@ -1078,289 +1078,282 @@ INT WinMain(HINSTANCE, HINSTANCE, PSTR, INT)
             ImGui::SetNextWindowPos(ImVec2(display_w * 0.5f - 300.f, display_h * 0.5f - 200.f), ImGuiCond_FirstUseEver);
             if (ImGui::Begin("Settings", &app.settings.show_window_settings))
             {
-                bool dns_was_running = dns_thread_running(&app);
-                if (dns_was_running) imgui_push_disabled();
-
-                bool irc_connected = app.sock != INVALID_SOCKET || dns_was_running;
-
-                if (irc_connected) imgui_push_disabled();
-                // TODO: "reconnect"
-                if (ImGui::Button("Connect"))
+                ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
+                bool header_twitch = ImGui::CollapsingHeader("Twitch");
+                imgui_tooltip("Connection, login info...");
+                if (header_twitch)
                 {
-                    if (!irc_connect(&app))
+                    bool dns_was_running = dns_thread_running(&app);
+                    if (dns_was_running) imgui_push_disabled();
+
+                    bool irc_connected = app.sock != INVALID_SOCKET || dns_was_running;
+
+                    if (irc_connected) imgui_push_disabled();
+                    // TODO: "reconnect"
+                    if (ImGui::Button("Connect"))
                     {
-                        // TODO: Errors should already be handled in irc_connect, but maybe provide feedback
+                        if (!irc_connect(&app))
+                        {
+                            // TODO: Errors should already be handled in irc_connect, but maybe provide feedback
+                        }
                     }
-                }
-                if (irc_connected) imgui_pop_disabled();
+                    if (irc_connected) imgui_pop_disabled();
 
-                ImGui::SameLine();
-
-                if (ImGui::Button("Disconnect"))
-                {
-                    irc_disconnect(&app);
-                }
-
-                if (dns_was_running) imgui_pop_disabled();
-
-                f32 x = ImGui::GetContentRegionAvail().x;
-                ImGui::Columns(2, "settings_columns", false);
-                ImGui::SetColumnWidth(0, BETTER_MAX(x * 0.35f, 9 * ImGui::GetFontSize()));
-
-                ImGui::Text("Channel");
-                ImGui::NextColumn();
-
-                f32 widget_width = ImGui::GetContentRegionAvail().x;
-
-                ImGui::PushID("Channel");
-                ImGui::SetNextItemWidth(widget_width);
-                if (irc_connected) imgui_push_disabled();
-                if (ImGui::InputText("", app.settings.channel, CHANNEL_NAME_MAX))
-                {
-                    make_lower(app.settings.channel);
-                }
-                if (irc_connected) imgui_pop_disabled();
-                ImGui::PopID();
-                ImGui::NextColumn();
-
-                ImGui::Text("Auto-connect");
-                imgui_extra("If enabled, Better auto-connects to the channel on startup.");
-                ImGui::NextColumn();
-                ImGui::PushID("Auto-connect");
-                ImGui::Checkbox("", &app.settings.auto_connect);
-                ImGui::PopID();
-                ImGui::NextColumn();
-
-                ImGui::Text("Username");
-                imgui_extra("The username of the account the bot will log in as.\n");
-                ImGui::NextColumn();
-                ImGui::PushID("username");
-                ImGui::SetNextItemWidth(widget_width);
-                if (irc_connected) imgui_push_disabled();
-                if (ImGui::InputText("", app.settings.username, CHANNEL_NAME_MAX))
-                    make_lower(app.settings.username);
-                if (irc_connected) imgui_pop_disabled();
-                ImGui::PopID();
-                ImGui::NextColumn();
-
-                ImGui::Text("OAuth token");
-                imgui_extra("Go to twitchapps.com/tmi to get a token for your account. Must start with \"oauth:\". The clipboard will be emptied after pasting.");
-                ImGui::NextColumn();
-                ImGui::PushID("token");
-                ImGui::SetNextItemWidth(widget_width);
-
-                if (irc_connected) imgui_push_disabled();
-
-                if (!app.settings.oauth_token_is_present)
-                {
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("(empty)");
                     ImGui::SameLine();
 
-                    bool clip_open = OpenClipboard(app.main_wnd);
-                    bool disable_paste = !IsClipboardFormatAvailable(CF_TEXT) ||
-                                         !clip_open;
-
-                    if (disable_paste) imgui_push_disabled();
-
-                    if (ImGui::Button("Paste"))
+                    if (ImGui::Button("Disconnect"))
                     {
-                        HANDLE clip_handle = GetClipboardData(CF_TEXT);
-                        if (clip_handle == NULL)
+                        irc_disconnect(&app);
+                    }
+
+                    if (dns_was_running) imgui_pop_disabled();
+
+                    if (ImGui::BeginTable("settings_twitch", 2))
+                    {
+                        ImGui::TableSetupColumn(NULL, ImGuiTableColumnFlags_WidthAutoResize);
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("Channel");
+                        ImGui::TableNextColumn();
+
+                        f32 widget_width = ImGui::GetContentRegionAvailWidth() - 2.0f * style.FramePadding.x;
+
+                        ImGui::SetNextItemWidth(widget_width);
+                        if (irc_connected) imgui_push_disabled();
+                        if (ImGui::InputText("##channel", app.settings.channel, CHANNEL_NAME_MAX))
+                            make_lower(app.settings.channel);
+                        if (irc_connected) imgui_pop_disabled();
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("Auto-connect");
+                        imgui_extra("If enabled, Better auto-connects to the channel on startup.");
+                        ImGui::TableNextColumn();
+                        ImGui::Checkbox("##autoconnect", &app.settings.auto_connect);
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("Username");
+                        imgui_extra("The username of the account the bot will log in as.\n");
+                        ImGui::TableNextColumn();
+                        ImGui::SetNextItemWidth(widget_width);
+                        if (irc_connected) imgui_push_disabled();
+                        if (ImGui::InputText("##username", app.settings.username, CHANNEL_NAME_MAX))
+                            make_lower(app.settings.username);
+                        if (irc_connected) imgui_pop_disabled();
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("OAuth token");
+                        imgui_extra("Go to twitchapps.com/tmi to get a token for your account. Must start with \"oauth:\". The clipboard will be emptied after pasting.");
+                        ImGui::TableNextColumn();
+                        ImGui::SetNextItemWidth(widget_width);
+                        if (irc_connected) imgui_push_disabled();
+                        if (!app.settings.oauth_token_is_present)
                         {
-                            add_log(&app, LOGLEVEL_DEVERROR, "GetClipboardData failed: %d", GetLastError());
-                        }
-                        else
-                        {
-                            char* clip_data = (char*) GlobalLock(clip_handle);
-                            if (clip_data == NULL)
+                            ImGui::AlignTextToFramePadding();
+                            ImGui::Text("(empty)");
+                            ImGui::SameLine();
+
+                            bool clip_open = OpenClipboard(app.main_wnd);
+                            bool disable_paste = !IsClipboardFormatAvailable(CF_TEXT) ||
+                                                 !clip_open;
+
+                            if (disable_paste) imgui_push_disabled();
+
+                            if (ImGui::Button("Paste##paste_oauth_token"))
                             {
-                                add_log(&app, LOGLEVEL_DEVERROR, "GlobalLock failed: %d", GetLastError());
-                            }
-                            else
-                            {
-                                strncpy(app.settings.token, clip_data, TOKEN_MAX);
-                                GlobalUnlock(clip_handle);
-                                if(strncmp(app.settings.token, "oauth:", 6) != 0)
+                                HANDLE clip_handle = GetClipboardData(CF_TEXT);
+                                if (clip_handle == NULL)
                                 {
-                                    add_log(&app, LOGLEVEL_USERERROR, "Pasted token has an incorrect format. Make sure it starts with \"oauth:\".");
-                                    SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
-                                    app.settings.oauth_token_is_present = false;
+                                    add_log(&app, LOGLEVEL_DEVERROR, "GetClipboardData failed: %d", GetLastError());
                                 }
                                 else
                                 {
-                                    if (!EmptyClipboard()) add_log(&app, LOGLEVEL_DEVERROR, "EmptyClipboard failed: %d", GetLastError());
-
-                                    // Trim trailing whitespace in token
-                                    char* c = app.settings.token;
-                                    while (*c && *c != ' ' && *c != '\r' && *c != '\n') ++c;
-                                    *c = '\0';
-
-                                    if (!CryptProtectMemory(app.settings.token, sizeof(app.settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
+                                    char* clip_data = (char*) GlobalLock(clip_handle);
+                                    if (clip_data == NULL)
                                     {
-                                        add_log(&app, LOGLEVEL_DEVERROR, "CryptProtectMemory failed: %i", GetLastError());
-                                        SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
-                                        app.settings.oauth_token_is_present = false;
+                                        add_log(&app, LOGLEVEL_DEVERROR, "GlobalLock failed: %d", GetLastError());
                                     }
-                                    else app.settings.oauth_token_is_present = true;
+                                    else
+                                    {
+                                        strncpy(app.settings.token, clip_data, TOKEN_MAX);
+                                        GlobalUnlock(clip_handle);
+                                        if(strncmp(app.settings.token, "oauth:", 6) != 0)
+                                        {
+                                            add_log(&app, LOGLEVEL_USERERROR, "Pasted token has an incorrect format. Make sure it starts with \"oauth:\".");
+                                            SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
+                                            app.settings.oauth_token_is_present = false;
+                                        }
+                                        else
+                                        {
+                                            if (!EmptyClipboard()) add_log(&app, LOGLEVEL_DEVERROR, "EmptyClipboard failed: %d", GetLastError());
+
+                                            // Trim trailing whitespace in token
+                                            char* c = app.settings.token;
+                                            while (*c && *c != ' ' && *c != '\r' && *c != '\n') ++c;
+                                            *c = '\0';
+
+                                            if (!CryptProtectMemory(app.settings.token, sizeof(app.settings.token), CRYPTPROTECTMEMORY_SAME_PROCESS))
+                                            {
+                                                add_log(&app, LOGLEVEL_DEVERROR, "CryptProtectMemory failed: %i", GetLastError());
+                                                SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
+                                                app.settings.oauth_token_is_present = false;
+                                            }
+                                            else app.settings.oauth_token_is_present = true;
+                                        }
+                                    }
                                 }
                             }
+
+                            if (disable_paste) imgui_pop_disabled();
+                            if (clip_open) CloseClipboard();
                         }
-                    }
+                        else
+                        {
+                            ImGui::AlignTextToFramePadding();
+                            ImGui::Text("(hidden)");
+                            ImGui::SameLine();
+                            if (imgui_confirmable_button("Clear##clear_oauth_token", ImVec2(4.0f*ImGui::GetFontSize(), 0)))
+                            {
+                                SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
+                                app.settings.oauth_token_is_present = false;
+                            }
+                        }
+                        if (irc_connected) imgui_pop_disabled();
+                        ImGui::TableNextColumn();
 
-                    if (disable_paste) imgui_pop_disabled();
-                    if (clip_open) CloseClipboard();
+                        ImGui::Text("User is moderator");
+                        imgui_extra("This allows Better to send messages to the chat more frequently to keep up with large viewer groups. Only enable this if the user is a moderator on (or the owner of) the channel, or you might be temporarily blocked by Twitch.");
+                        ImGui::TableNextColumn();
+                        ImGui::Checkbox("##mod_mode", &app.settings.is_mod);
+                        ImGui::EndTable();
+                    }
                 }
-                else
+
+                bool header_betting = ImGui::CollapsingHeader("Betting");
+                imgui_tooltip("Betting behavior, chat commands...");
+                if (header_betting)
                 {
-                    ImGui::AlignTextToFramePadding();
-                    ImGui::Text("(hidden)");
-                    ImGui::SameLine();
-                    if (imgui_confirmable_button("Clear", ImVec2(4.0f*ImGui::GetFontSize(), 0)))
+                    if (ImGui::BeginTable("settings_betting", 2))
                     {
-                        SecureZeroMemory(app.settings.token, sizeof(app.settings.token));
-                        app.settings.oauth_token_is_present = false;
+                        ImGui::TableSetupColumn(NULL, ImGuiTableColumnFlags_WidthAutoResize);
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("Command prefix");
+                        ImGui::TableNextColumn();
+
+                        f32 widget_width = ImGui::GetContentRegionAvailWidth() - 2.0f * style.FramePadding.x;
+
+                        ImGui::SetNextItemWidth(widget_width);
+                        ImGui::InputText("##command_prefix", app.settings.command_prefix, 2);
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("Currency name");
+                        ImGui::TableNextColumn();
+                        ImGui::SetNextItemWidth(widget_width);
+                        if (ImGui::InputText("##points_name", app.settings.points_name, POINTS_NAME_MAX, ImGuiInputTextFlags_CharsNoBlank))
+                            make_lower(app.settings.points_name);
+
+                        ImGui::Text("Command: %s%s", app.settings.command_prefix, app.settings.points_name);
+
+                        ImGui::TableNextColumn();
+
+                        bool bets_open = bets_status(&app) != BETS_STATUS_CLOSED;
+
+                        ImGui::Text("Starting %s", app.settings.points_name);
+                        ImGui::TableNextColumn();
+                        ImGui::SetNextItemWidth(widget_width);
+                        ImGui::InputScalar("##starting_points", ImGuiDataType_U64, &app.settings.starting_points, &POINTS_STEP_SMALL, &POINTS_STEP_BIG/*, NULL, ImGuiInputTextFlags_EnterReturnsTrue*/);
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("Allow multibets");
+                        imgui_extra("If enabled, viewers can place bets on multiple options at the same time. If disabled, placing a bet on one option will remove the viewer's bets on all other options.");
+                        ImGui::TableNextColumn();
+                        if (bets_open) imgui_push_disabled();
+                        ImGui::Checkbox("##allow_multibets", &app.settings.allow_multibets);
+                        if (bets_open) imgui_pop_disabled();
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("Bet update mode");
+                        imgui_extra("This option controls what happens if a viewer places a bet on an option where they already have a wager.\n\nSet mode: The existing wager is replaced by the input amount.\nAdd mode: The input amount is added to the existing wager.");
+                        ImGui::TableNextColumn();
+                        if (bets_open) imgui_push_disabled();
+                        if (ImGui::RadioButton("Set##update_mode_set", !app.settings.add_mode))
+                            app.settings.add_mode = false;
+                        ImGui::SameLine();
+                        if (ImGui::RadioButton("Add##update_mode_add", app.settings.add_mode))
+                            app.settings.add_mode = true;
+                        if (bets_open) imgui_pop_disabled();
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("Timer leniency");
+                        imgui_extra("Bets will be open for this amount of seconds after the timer apparently runs out.");
+                        ImGui::TableNextColumn();
+                        ImGui::SetNextItemWidth(widget_width);
+                        if (bets_open) imgui_push_disabled();
+                        ImGui::InputScalar("##timer_leniency", ImGuiDataType_U32, &app.settings.coyote_time, &TIMER_STEP_SMALL, &TIMER_STEP_BIG);
+                        if (bets_open) imgui_pop_disabled();
+
+                        ImGui::EndTable();
                     }
                 }
 
-                if (irc_connected) imgui_pop_disabled();
-
-                ImGui::PopID();
-                ImGui::NextColumn();
-
-                ImGui::Text("User is moderator");
-                imgui_extra("This allows Better to send messages to the chat more frequently to keep up with large viewer groups. Only enable this if the user is a moderator on (or the owner of) the channel, or you might be temporarily blocked by Twitch.");
-                ImGui::NextColumn();
-                ImGui::PushID("User is moderator");
-                ImGui::Checkbox("", &app.settings.is_mod);
-                ImGui::PopID();
-                ImGui::NextColumn();
-
-                ImGui::Separator();
-
-                ImGui::Text("Command prefix");
-                ImGui::NextColumn();
-                ImGui::PushID("Command prefix");
-                ImGui::SetNextItemWidth(widget_width);
-                ImGui::InputText("", app.settings.command_prefix, 2);
-                ImGui::PopID();
-                ImGui::NextColumn();
-
-                ImGui::Text("Points name");
-                ImGui::NextColumn();
-                ImGui::PushID("Points name");
-                ImGui::SetNextItemWidth(widget_width);
-                if (ImGui::InputText("", app.settings.points_name, POINTS_NAME_MAX, ImGuiInputTextFlags_CharsNoBlank))
+                bool header_announcements = ImGui::CollapsingHeader("Announcements");
+                imgui_tooltip("Choose what announcements Better will make in the chat.");
+                if (header_announcements)
                 {
-                    make_lower(app.settings.points_name);
+                    if (ImGui::BeginTable("settings_announcements", 2))
+                    {
+                        ImGui::TableSetupColumn(NULL, ImGuiTableColumnFlags_WidthAutoResize);
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("Bets open");
+                        ImGui::TableNextColumn();
+                        ImGui::Checkbox("##announce_bets_open", &app.settings.announce_bets_open);
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("Bets close");
+                        ImGui::TableNextColumn();
+                        ImGui::Checkbox("##announce_bets_close", &app.settings.announce_bets_close);
+                        ImGui::TableNextColumn();
+
+                        ImGui::Text("Payout");
+                        ImGui::TableNextColumn();
+                        ImGui::Checkbox("##announce_payout", &app.settings.announce_payout);
+                        ImGui::EndTable();
+                    }
                 }
-                ImGui::PopID();
 
-                ImGui::Text("Command: %s%s", app.settings.command_prefix, app.settings.points_name);
+                bool header_confirmation = ImGui::CollapsingHeader("Confirmation");
+                imgui_tooltip("Enable click-twice confirmation for functions that you don't want to click accidentally.");
+                if (header_confirmation)
+                {
+                    if (ImGui::BeginTable("settings_confirmation", 2))
+                    {
+                        ImGui::TableSetupColumn(NULL, ImGuiTableColumnFlags_WidthAutoResize);
+                        ImGui::TableNextColumn();
 
-                ImGui::NextColumn();
+                        ImGui::Text("Handouts");
+                        ImGui::TableNextColumn();
+                        ImGui::Checkbox("##confirm_handout", &app.settings.confirm_handout);
+                        ImGui::TableNextColumn();
 
-                ImGui::Separator();
+                        ImGui::Text("Resetting leaderboard");
+                        ImGui::TableNextColumn();
+                        ImGui::Checkbox("##confirm_leaderboard_reset", &app.settings.confirm_leaderboard_reset);
+                        ImGui::TableNextColumn();
 
-                bool bets_open = bets_status(&app) != BETS_STATUS_CLOSED;
+                        ImGui::Text("Refunding bets");
+                        ImGui::TableNextColumn();
+                        ImGui::Checkbox("##confirm_refund", &app.settings.confirm_refund);
+                        ImGui::TableNextColumn();
 
-                ImGui::Text("Starting %s", app.settings.points_name);
-                ImGui::NextColumn();
-                ImGui::PushID("Starting points");
-                ImGui::SetNextItemWidth(widget_width);
-                ImGui::InputScalar("", ImGuiDataType_U64, &app.settings.starting_points, &POINTS_STEP_SMALL, &POINTS_STEP_BIG/*, NULL, ImGuiInputTextFlags_EnterReturnsTrue*/);
-                ImGui::PopID();
-                ImGui::NextColumn();
+                        ImGui::Text("Payouts");
+                        ImGui::TableNextColumn();
+                        ImGui::Checkbox("##confirm_payout", &app.settings.confirm_payout);
+                        ImGui::TableNextColumn();
 
-                ImGui::Text("Allow multibets");
-                imgui_extra("If enabled, viewers can place bets on multiple options at the same time. If disabled, placing a bet on one option will remove the viewer's bets on all other options.");
-                ImGui::NextColumn();
-                if (bets_open) imgui_push_disabled();
-                ImGui::PushID("Allow multibets");
-                ImGui::Checkbox("", &app.settings.allow_multibets);
-                if (bets_open) imgui_pop_disabled();
-                ImGui::PopID();
-                ImGui::NextColumn();
-
-                ImGui::Text("Bet update mode");
-                imgui_extra("This option controls what happens if a viewer places a bet on an option where they already have a wager.\n\nSet mode: The existing wager is replaced by the input amount.\nAdd mode: The input amount is added to the existing wager.");
-                ImGui::NextColumn();
-                if (bets_open) imgui_push_disabled();
-                ImGui::PushID("Bet update mode");
-                if (ImGui::RadioButton("Set", !app.settings.add_mode))
-                    app.settings.add_mode = false;
-                ImGui::SameLine();
-                if (ImGui::RadioButton("Add", app.settings.add_mode))
-                    app.settings.add_mode = true;
-                if (bets_open) imgui_pop_disabled();
-                ImGui::PopID();
-                ImGui::NextColumn();
-
-                ImGui::Text("Timer leniency");
-                imgui_extra("Bets will be open for this amount of seconds after the timer apparently runs out.");
-                ImGui::NextColumn();
-                ImGui::PushID("Timer leniency");
-                ImGui::SetNextItemWidth(widget_width);
-                if (bets_open) imgui_push_disabled();
-                ImGui::InputScalar("", ImGuiDataType_U32, &app.settings.coyote_time, &TIMER_STEP_SMALL, &TIMER_STEP_BIG);
-                if (bets_open) imgui_pop_disabled();
-                ImGui::PopID();
-                ImGui::NextColumn();
-
-                ImGui::Separator();
-
-                ImGui::Text("Announcements");
-                ImGui::NextColumn();
-                ImGui::NextColumn();
-                imgui_extra("Choose what announcements Better will make in the chat.");
-
-                ImGui::Text("Bets open");
-                ImGui::NextColumn();
-                ImGui::PushID("announce_bets_open");
-                ImGui::Checkbox("", &app.settings.announce_bets_open);
-                ImGui::PopID();
-                ImGui::NextColumn();
-
-                ImGui::Text("Bets close");
-                ImGui::NextColumn();
-                ImGui::PushID("announce_bets_close");
-                ImGui::Checkbox("", &app.settings.announce_bets_close);
-                ImGui::PopID();
-                ImGui::NextColumn();
-
-                ImGui::Text("Payout");
-                ImGui::NextColumn();
-                ImGui::PushID("announce_payout");
-                ImGui::Checkbox("", &app.settings.announce_payout);
-                ImGui::PopID();
-                ImGui::NextColumn();
-
-                ImGui::Separator();
-
-                ImGui::Text("Confirmation");
-                ImGui::NextColumn();
-                ImGui::NextColumn();
-                imgui_extra("Enable click-twice confirmation for functions that you don't want to click accidentally.");
-
-                ImGui::Text("Handouts");
-                ImGui::NextColumn();
-                ImGui::Checkbox("##confirm_handout", &app.settings.confirm_handout);
-                ImGui::NextColumn();
-
-                ImGui::Text("Resetting leaderboard");
-                ImGui::NextColumn();
-                ImGui::Checkbox("##confirm_leaderboard_reset", &app.settings.confirm_leaderboard_reset);
-                ImGui::NextColumn();
-
-                ImGui::Text("Refunding bets");
-                ImGui::NextColumn();
-                ImGui::Checkbox("##confirm_refund", &app.settings.confirm_refund);
-                ImGui::NextColumn();
-
-                ImGui::Text("Payouts");
-                ImGui::NextColumn();
-                ImGui::Checkbox("##confirm_payout", &app.settings.confirm_payout);
-                ImGui::NextColumn();
+                        ImGui::EndTable();
+                    }
+                }
             }
             ImGui::End();
         }
