@@ -41,7 +41,8 @@ if errorlevel 1 (
        lib\imgui\*.cpp ^
        lib\imgui\backends\imgui_impl_dx11.cpp ^
        lib\imgui\backends\imgui_impl_win32.cpp ^
-       lib\implot\*.cpp ^
+       lib\implot\implot.cpp ^
+       lib\implot\implot_items.cpp ^
        %CommonCFlags% %TargetCFlags% ^
        /link %CommonLFlags%
 
